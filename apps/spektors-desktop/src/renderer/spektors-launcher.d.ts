@@ -13,9 +13,17 @@ export type RunCommandResult = {
 export type ValidateResult = { ok: true } | { ok: false; reason: string };
 
 export type SpektorsLauncherAPI = {
+  platform: NodeJS.Platform;
+  winMinimize: () => void;
+  winMaximizeToggle: () => void;
+  winClose: () => void;
   openDirectory: () => Promise<string | null>;
   openExternal: (url: string) => Promise<void>;
+  openPath: (dir: string) => Promise<string | null>;
+  probeUrl: (url: string) => Promise<boolean>;
   writeClipboard: (text: string) => Promise<void>;
+  readProfileFile: () => Promise<string | null>;
+  writeProfileFile: (json: string) => Promise<void>;
   validateProject: (root: string) => Promise<ValidateResult>;
   readEnv: (root: string) => Promise<string>;
   writeEnv: (root: string, content: string) => Promise<void>;

@@ -5,15 +5,21 @@
   "type": "module",
   "main": "out/main/index.js",
   "scripts": {
+    "icons": "node scripts/generate-icon.mjs",
+    "predev": "npm run icons",
+    "prebuild": "npm run icons",
     "dev": "electron-vite dev",
     "build": "electron-vite build",
     "preview": "electron-vite preview"
   },
   "dependencies": {
+    "@spektors/ui-shell": "*",
+    "@spektors/ui-tokens": "*",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
+    "@resvg/resvg-js": "^2.6.2",
     "@vitejs/plugin-react": "^4.3.4",
     "autoprefixer": "^10.4.20",
     "electron": "^34.0.0",

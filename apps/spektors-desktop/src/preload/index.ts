@@ -1,12 +1,30 @@
 import { contextBridge, ipcRenderer } from "electron";
 
 const api = {
+  platform: process.platform,
+  winMinimize: (): void => {
+    ipcRenderer.send("win:minimize");
+  },
+  winMaximizeToggle: (): void => {
+    ipcRenderer.send("win:maximize-toggle");
+  },
+  winClose: (): void => {
+    ipcRenderer.send("win:close");
+  },
   openDirectory: (): Promise<string | null> =>
     ipcRenderer.invoke("dialog:openDirectory"),
   openExternal: (url: string): Promise<void> =>
     ipcRenderer.invoke("shell:openExternal", url),
+  openPath: (dir: string): Promise<string | null> =>
+    ipcRenderer.invoke("shell:openPath", dir),
+  probeUrl: (url: string): Promise<boolean> =>
+    ipcRenderer.invoke("net:probeUrl", url),
   writeClipboard: (text: string): Promise<void> =>
     ipcRenderer.invoke("clipboard:writeText", text),
+  readProfileFile: (): Promise<string | null> =>
+    ipcRenderer.invoke("profile:readFile"),
+  writeProfileFile: (json: string): Promise<void> =>
+    ipcRenderer.invoke("profile:writeFile", json),
   validateProject: (
     root: string,
   ): Promise<{ ok: true } | { ok: false; reason: string }> =>

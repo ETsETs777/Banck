@@ -85,3 +85,5 @@ apps/spektors-desktop/
 ---
 
 *Документ дополняется по мере реализации.*
+
+**Итерация улучшений (v0.2):** см. [SPEKTORS_DESKTOP_IMPROVEMENTS_TZ.md](./SPEKTORS_DESKTOP_IMPROVEMENTS_TZ.md).

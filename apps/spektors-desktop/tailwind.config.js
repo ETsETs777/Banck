@@ -4,10 +4,15 @@ export default {
   theme: {
     extend: {
       colors: {
-        accent: "#a78bfa",
+        accent: "#22d3ee",
+      },
+      fontFamily: {
+        sans: ["Outfit", "system-ui", "sans-serif"],
+        mono: ['"JetBrains Mono"', "ui-monospace", "monospace"],
       },
       boxShadow: {
-        glow: "0 0 40px -10px rgba(167, 139, 250, 0.35)",
+        glow: "0 0 48px -12px rgba(34, 211, 238, 0.35)",
+        card: "0 4px 24px -8px rgba(0, 0, 0, 0.45)",
       },
     },
   },

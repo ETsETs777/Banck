@@ -6,7 +6,8 @@
     "packages/*"
   ],
   "devDependencies": {
-    "@playwright/test": "^1.49.1"
+    "@playwright/test": "^1.49.1",
+    "concurrently": "^9.1.2"
   },
   "scripts": {
     "postinstall": "npm run build -w @spektors/api-client -w @spektors/next-i18n -w @spektors/chat-ui -w @spektors/ui-shell",
@@ -21,6 +22,7 @@
     "dev:web-admin": "npm run dev -w web-admin",
     "dev:web-dev": "npm run dev -w web-dev",
     "dev:desktop": "npm run dev -w spektors-desktop",
+    "dev:all": "concurrently -c auto -n api,desk,w3000,w3001,w3002,w3003 \"npm run dev:api\" \"npm run dev:desktop\" \"npm run dev:web-client\" \"npm run dev:web-lite\" \"npm run dev:web-admin\" \"npm run dev:web-dev\"",
     "dev:api": "cd apps/api && py -3 -m uvicorn spektors_api.main:app --reload --port 8000",
     "build:all": "npm run build --workspaces --if-present"
   }
