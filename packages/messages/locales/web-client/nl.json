@@ -1,0 +1,46 @@
+{
+  "meta": {
+    "title": "Spektors · Klantomgeving",
+    "description": "Webbankieren en chat met een lokale LLM"
+  },
+  "common": {
+    "themeToggle": "Thema wisselen",
+    "themeToLight": "Licht thema",
+    "themeToDark": "Donker thema"
+  },
+  "home": {
+    "badge": "web-client · poort 3000",
+    "title": "Spektors · chat",
+    "intro": "De publieke API gebruikt de header <codeAppId>X-App-Id: web_client</codeAppId>. Variabele <codeApiUrl>NEXT_PUBLIC_API_URL</codeApiUrl> is de basis-URL van de backend (standaard localhost:8000)."
+  },
+  "chat": {
+    "db": "DB",
+    "llm": "LLM",
+    "api": "API",
+    "statusOk": "ok",
+    "statusNo": "nee",
+    "statusWait": "…",
+    "empty": "Typ een bericht — het antwoord wordt opgeslagen in PostgreSQL.",
+    "you": "U",
+    "assistant": "Assistent",
+    "badgeAi": "AI",
+    "badgeHuman": "Medewerker",
+    "typing": "…",
+    "placeholder": "Bericht…",
+    "streamLabel": "Stream (SSE)",
+    "send": "Verzenden",
+    "waiting": "Even geduld…",
+    "newChat": "Nieuwe chat",
+    "copyThreadIds": "ID’s kopiëren",
+    "refreshThread": "Vernieuwen van server",
+    "copiedIds": "Gekopieerd",
+    "copyFailed": "Kopiëren mislukt",
+    "requestIdNote": "(verzoek-ID: {id})"
+  },
+  "locale": {
+    "label": "Taal",
+    "ru": "Russisch",
+    "en": "Engels",
+    "nl": "Nederlands"
+  }
+}

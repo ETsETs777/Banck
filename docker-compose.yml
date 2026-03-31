@@ -1,0 +1,72 @@
+# Postgres — основное хранилище (сессии чата, сообщения). Ollama — LLM. Chroma — RAG.
+# Первый запуск модели: docker compose exec ollama ollama pull qwen2.5:7b
+# Эмбеддинги RAG: docker compose exec ollama ollama pull nomic-embed-text
+#
+# Безопасность (прод): смените POSTGRES_PASSWORD; не публикуйте 5432/11434/8001 в интернет;
+# задайте INTERNAL_*_TOKEN; при необходимости DISABLE_OPENAPI=1 на сервисе api.
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: spektors
+      POSTGRES_PASSWORD: spektors
+      POSTGRES_DB: spektors
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U spektors -d spektors"]
+      interval: 3s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    restart: unless-stopped
+
+  chroma:
+    image: chromadb/chroma:latest
+    ports:
+      - "8001:8000"
+    volumes:
+      - chroma_data:/data
+    restart: unless-stopped
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://spektors:spektors@postgres:5432/spektors
+      LLM_BASE_URL: http://ollama:11434
+      DEFAULT_OLLAMA_MODEL: qwen2.5:7b
+      CHROMA_URL: http://chroma:8000
+      OLLAMA_EMBED_MODEL: nomic-embed-text
+      # Опционально: LOG_LEVEL=DEBUG, DB_POOL_MIN=1, DB_POOL_MAX=20
+      # Базовый URL для поля servers в OpenAPI (Swagger / ReDoc с хоста)
+      PUBLIC_API_URL: http://localhost:8000
+      # Скрыть /docs, /redoc, /openapi.json: DISABLE_OPENAPI=1
+      # Раскомментируйте и задайте токены для защиты /internal/* (иначе internal открыт)
+      # INTERNAL_ADMIN_TOKEN: change-me-admin
+      # INTERNAL_DEV_TOKEN: change-me-dev
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ollama:
+        condition: service_started
+      chroma:
+        condition: service_started
+    restart: unless-stopped
+
+volumes:
+  pg_data:
+  ollama_data:
+  chroma_data:

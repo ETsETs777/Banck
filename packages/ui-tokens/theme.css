@@ -1,0 +1,48 @@
+/* Семантические токены: светлая / тёмная (п. 1b плана). Подключается в layout Next-приложений. */
+
+:root,
+[data-theme="dark"] {
+  --bg: #0c0f14;
+  --bg-gradient: radial-gradient(120% 80% at 20% 0%, #152238 0%, #0c0f14 55%);
+  --fg: #f4f4f5;
+  --fg-muted: #a1a1aa;
+  --glass: rgba(255, 255, 255, 0.06);
+  --glass-border: rgba(255, 255, 255, 0.12);
+  --glass-highlight: rgba(255, 255, 255, 0.1);
+  --accent: #22d3ee;
+  --accent-glow: rgba(34, 211, 238, 0.35);
+  --accent-chat: #a78bfa;
+  --danger: #f87171;
+  --ring: rgba(34, 211, 238, 0.5);
+  --chat-user: rgba(34, 211, 238, 0.15);
+  --chat-assistant: rgba(167, 139, 250, 0.12);
+}
+
+[data-theme="light"] {
+  --bg: #f4f6f8;
+  --bg-gradient: radial-gradient(120% 80% at 20% 0%, #e8f4fc 0%, #f4f6f8 55%);
+  --fg: #18181b;
+  --fg-muted: #52525b;
+  --glass: rgba(255, 255, 255, 0.72);
+  --glass-border: rgba(24, 24, 27, 0.1);
+  --glass-highlight: rgba(255, 255, 255, 0.9);
+  --accent: #0891b2;
+  --accent-glow: rgba(8, 145, 178, 0.2);
+  --accent-chat: #7c3aed;
+  --danger: #dc2626;
+  --ring: rgba(8, 145, 178, 0.45);
+  --chat-user: rgba(8, 145, 178, 0.12);
+  --chat-assistant: rgba(124, 58, 237, 0.1);
+}
+
+[data-contrast="high"][data-theme="dark"] {
+  --fg: #ffffff;
+  --fg-muted: #d4d4d8;
+  --glass-border: rgba(255, 255, 255, 0.28);
+}
+
+[data-contrast="high"][data-theme="light"] {
+  --fg: #000000;
+  --fg-muted: #3f3f46;
+  --glass-border: rgba(0, 0, 0, 0.22);
+}

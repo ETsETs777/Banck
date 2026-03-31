@@ -1,0 +1,10 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  color: var(--fg);
+  background: var(--bg);
+  background-image: var(--bg-gradient);
+  min-height: 100vh;
+}

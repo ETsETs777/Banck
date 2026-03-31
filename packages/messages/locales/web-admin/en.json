@@ -1,0 +1,60 @@
+{
+  "meta": {
+    "title": "Spektors · Admin",
+    "description": "Operator console"
+  },
+  "common": {
+    "themeToggle": "Theme",
+    "themeToLight": "Use light theme",
+    "themeToDark": "Use dark theme"
+  },
+  "nav": {
+    "overview": "Overview",
+    "inbox": "Chat queue",
+    "swagger": "Swagger API"
+  },
+  "home": {
+    "badge": "web-admin · port 3002",
+    "title": "Operator console",
+    "intro": "Operator replies use POST /internal/admin/v1/sessions/…/threads/…/reply with Bearer INTERNAL_ADMIN_TOKEN on the API (when set). See docs/FRONTEND_TZ.md.",
+    "inboxCardTitle": "Chat queue",
+    "inboxCardDesc": "Thread list and operator reply",
+    "threadsCardTitle": "Threads in DB",
+    "threadsCardDesc": "Sorted by last message; optional app_id filter"
+  },
+  "inbox": {
+    "title": "Chat queue",
+    "intro": "Enter session_id and thread_id (from chat API headers or body). Token is INTERNAL_ADMIN_TOKEN on the API; leave empty in dev if the API has no token set.",
+    "securityHint": "In production, avoid putting a long-lived admin token in the browser — XSS could leak it. Prefer BFF (the button below uses a server-side token).",
+    "threadsTitle": "Threads",
+    "threadsLoadError": "Could not load threads",
+    "threadsEmpty": "No threads with messages yet",
+    "filterAppId": "Filter by app_id (optional)",
+    "filterPlaceholder": "web_client, web_lite…",
+    "refreshThreads": "Refresh list",
+    "lastUpdate": "Updated",
+    "messagesCount": "msgs",
+    "useRow": "Fill form",
+    "bffTitle": "Send via BFF (Next server)",
+    "bffHint": "On the Next server set INTERNAL_ADMIN_TOKEN and optionally SPEKTORS_API_URL (otherwise NEXT_PUBLIC_API_URL is used).",
+    "bffSubmit": "Send as operator (BFF)",
+    "bffUnavailable": "BFF unavailable: INTERNAL_ADMIN_TOKEN is not set on the Next server. Use direct mode below or add variables to .env.local.",
+    "directTitle": "Direct API (development)",
+    "tokenLabel": "Bearer token (admin)",
+    "sessionId": "session_id",
+    "threadId": "thread_id",
+    "defaultAuthor": "Support",
+    "authorLabel": "Label in chat",
+    "content": "Reply text",
+    "directSubmit": "Send as operator",
+    "sending": "Sending…",
+    "successPrefix": "Sent",
+    "successHint": "The client will see the reply after the chat syncs."
+  },
+  "locale": {
+    "label": "Language",
+    "ru": "Русский",
+    "en": "English",
+    "nl": "Dutch"
+  }
+}

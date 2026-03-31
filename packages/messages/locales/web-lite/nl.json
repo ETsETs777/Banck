@@ -1,0 +1,46 @@
+{
+  "meta": {
+    "title": "Spektors · Lite",
+    "description": "Lichte client en chat"
+  },
+  "common": {
+    "themeToggle": "Thema wisselen",
+    "themeToLight": "Licht thema",
+    "themeToDark": "Donker thema"
+  },
+  "home": {
+    "badge": "web-lite · poort 3001",
+    "title": "Spektors · Lite",
+    "intro": "Dezelfde API, andere header <codeAppId>X-App-Id: web_lite</codeAppId>. Variabele <codeApiUrl>NEXT_PUBLIC_API_URL</codeApiUrl> is de basis-URL van de backend."
+  },
+  "chat": {
+    "db": "DB",
+    "llm": "LLM",
+    "api": "API",
+    "statusOk": "ok",
+    "statusNo": "nee",
+    "statusWait": "…",
+    "empty": "Typ een bericht — het antwoord wordt opgeslagen in PostgreSQL.",
+    "you": "U",
+    "assistant": "Assistent",
+    "badgeAi": "AI",
+    "badgeHuman": "Medewerker",
+    "typing": "…",
+    "placeholder": "Bericht…",
+    "streamLabel": "Stream (SSE)",
+    "send": "Verzenden",
+    "waiting": "Even geduld…",
+    "newChat": "Nieuwe chat",
+    "copyThreadIds": "ID’s kopiëren",
+    "refreshThread": "Vernieuwen van server",
+    "copiedIds": "Gekopieerd",
+    "copyFailed": "Kopiëren mislukt",
+    "requestIdNote": "(verzoek-ID: {id})"
+  },
+  "locale": {
+    "label": "Taal",
+    "ru": "Russisch",
+    "en": "Engels",
+    "nl": "Nederlands"
+  }
+}

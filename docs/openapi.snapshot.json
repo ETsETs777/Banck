@@ -1,0 +1,1437 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Spektors API",
+    "description": "\n## Spektors API\n\nБэкенд веб-банка и локальной LLM: PostgreSQL для чата, Ollama для инференса, опционально Chroma (RAG).\n\n### Документация\n- Журнал изменений API (черновик): **`docs/API_CHANGELOG.md`** в репозитории.\n- **Swagger UI**: [`/docs`](/docs)\n- **ReDoc**: [`/redoc`](/redoc)\n- **OpenAPI JSON**: [`/openapi.json`](/openapi.json)\n\nПри переменной окружения **`DISABLE_OPENAPI`** = `1` / `true` / `yes` эти конечные точки отключены (см. `docs/SECURITY.md` в репозитории).\n\n### Authorize в Swagger\n1. **API Key `X-App-Id`** — *Authorize* → API Key, значение из `config/apps.yaml` (`web_client`, `web_lite`, …). Нужен для чата, RAG и **`POST /api/v1/chat/completions`**.\n2. **HTTP Bearer** — для маршрутов **`/internal/*`** вставьте **`INTERNAL_ADMIN_TOKEN`** (admin) или **`INTERNAL_DEV_TOKEN`** (dev), если переменные заданы на сервере (описание у схемы в UI).\n\n### Заголовок X-App-Id\nПубличные маршруты чата, **`POST /api/v1/rag/query`** и **`POST /api/v1/chat/completions`** требуют заголовок **`X-App-Id`**\nиз реестра приложений. CORS-источники задаются в `config/apps.yaml` для каждого приложения.\n\n### Идентификаторы сессии и треда\nВ теле **`POST /api/v1/chat`** и в пути **`GET .../messages`**: `session_id` и `thread_id` — строка **hex** длиной **8–64** символов\n(как у `uuid.uuid4().hex`), **без дефисов**. Несоответствие формату даёт ответ **422**.\n\n### Internal API\nПри заданных переменных **`INTERNAL_ADMIN_TOKEN`** и **`INTERNAL_DEV_TOKEN`** соответствующие маршруты\nтребуют **`Authorization: Bearer …`**. Если токен не задан — доступ открыт (только для разработки).\nПри **`INTERNAL_AUTH_STRICT=1`** (или `true` / `yes`) без заданного токена для роли маршрут отвечает **503** `internal_auth_not_configured` — закрывает «открытый internal» в проде.\n\n### Производительность (обзор)\nЗапросы к **Ollama** (чат, прокси completions, эмбеддинги RAG) идут через **один async HTTP-клиент на процесс**\nс keep-alive и лимитом соединений — меньше накладных расходов, чем при новом клиенте на каждый запрос.\nPostgreSQL — через **asyncpg pool** (`spektors_api.database.pool`), размер пула: **`DB_POOL_MIN`** / **`DB_POOL_MAX`**.\n\n### Корреляция запросов\nЗаголовок **`X-Request-ID`**: клиент может прислать свой; иначе API сгенерирует id и вернёт его в ответе (также в **`Access-Control-Expose-Headers`** для браузера).\n**`text/event-stream`** (SSE) не сжимается gzip middleware.\n\n### Логи\nУровень логирования: переменная **`LOG_LEVEL`** (по умолчанию `INFO`).\n\n### Лимит частоты\nДля **POST** к **`/api/v1/chat`**, **`/api/v1/rag/query`**, **`/api/v1/chat/completions`** действует лимит запросов в минуту на пару **IP + `X-App-Id`**\n(скользящее окно ~60 с). Переменная **`RATE_LIMIT_PER_MINUTE`** (по умолчанию **120**); **`0`** — отключить.\nОтвет **429** содержит JSON с `detail: rate_limit_exceeded` и заголовок **`Retry-After`** (секунды); заголовок продублирован в **`Access-Control-Expose-Headers`** для браузера.\n\n### Kubernetes\n- **`GET /api/v1/health/live`** — liveness без проверки БД.\n- **`GET /api/v1/health/ready`** — readiness; при недоступности Postgres ответ **503**.\n",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/api/v1/health/llm": {
+      "get": {
+        "tags": [
+          "llm"
+        ],
+        "summary": "Проверка Ollama",
+        "description": "Запрос списка моделей через `GET {llm_base}/api/tags`.",
+        "operationId": "health_llm_api_v1_health_llm_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthLlm"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/chat/completions": {
+      "post": {
+        "tags": [
+          "llm"
+        ],
+        "summary": "Прокси OpenAI chat/completions → Ollama",
+        "description": "Пробрасывает JSON в `{llm_base}/v1/chat/completions`. Требуется заголовок **`X-App-Id`** (как у `/api/v1/chat`). Модель принудительно берётся из конфига приложения (`ollama_model` / дефолт окружения), поле `model` в теле игнорируется — защита от произвольного выбора модели.\n\nПри `stream: true` возвращает `text/event-stream` (как у OpenAI). Тело запроса — в формате OpenAI Chat Completions.",
+        "operationId": "chat_completions_api_v1_chat_completions_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "messages": {
+                    "items": {
+                      "properties": {
+                        "role": {
+                          "type": "string"
+                        },
+                        "content": {
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "type": "array",
+                    "description": "История в формате OpenAI"
+                  },
+                  "stream": {
+                    "type": "boolean",
+                    "description": "true — ответ `text/event-stream` (SSE)",
+                    "default": false
+                  },
+                  "model": {
+                    "type": "string",
+                    "description": "Игнорируется сервером; оставлено для совместимости с OpenAI SDK",
+                    "deprecated": true
+                  }
+                },
+                "type": "object",
+                "required": [
+                  "messages"
+                ],
+                "description": "Формат OpenAI Chat Completions. Заголовок **X-App-Id** обязателен (Authorize в Swagger). Поле **model** в теле **игнорируется** — подставляется из `ollama_model` приложения в `config/apps.yaml` (или `DEFAULT_OLLAMA_MODEL`)."
+              },
+              "example": {
+                "messages": [
+                  {
+                    "role": "user",
+                    "content": "Привет"
+                  }
+                ],
+                "stream": false
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "JSON при stream=false; SSE при stream=true",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              },
+              "text/event-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Нет JSON, нет messages или нет X-App-Id"
+          },
+          "403": {
+            "description": "Неизвестный X-App-Id"
+          },
+          "502": {
+            "description": "Ollama недоступен или ошибка прокси"
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ]
+      }
+    },
+    "/api/v1/chat": {
+      "post": {
+        "tags": [
+          "chat"
+        ],
+        "summary": "Сообщение в чат (Ollama + PostgreSQL)",
+        "description": "Сохраняет реплику пользователя, вызывает модель для текущего `app_id` и пишет ответ ассистента в БД.\n\n**Заголовок `X-App-Id`** обязателен (см. Authorize в Swagger).\n\n- `stream: false` — ответ `application/json` с полями `session_id`, `thread_id`, `message`.\n- `stream: true` — `text/event-stream` (SSE); `session_id` и `thread_id` в заголовках ответа `X-Session-Id` и `X-Thread-Id`.\n\nОпциональные `session_id` / `thread_id` в теле — **hex 8–64** (как UUID без дефисов); иначе **422**.",
+        "operationId": "post_chat_api_v1_chat_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "JSON (stream=false) или SSE (stream=true)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "session_id": {
+                      "type": "string"
+                    },
+                    "thread_id": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "additionalProperties": true,
+                      "type": "object",
+                      "description": "Ответ Ollama в формате OpenAI chat/completions"
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "session_id",
+                    "thread_id",
+                    "message"
+                  ]
+                }
+              },
+              "text/event-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary",
+                  "description": "События в формате OpenAI streaming"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Нет тела, неверный JSON или нет X-App-Id"
+          },
+          "403": {
+            "description": "Неизвестный app_id или несовпадение session/thread"
+          },
+          "422": {
+            "description": "Ошибка валидации (в т.ч. формат session_id/thread_id: hex 8–64)"
+          },
+          "502": {
+            "description": "Ollama недоступен"
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ]
+      }
+    },
+    "/api/v1/sessions/{session_id}/threads/{thread_id}/messages": {
+      "get": {
+        "tags": [
+          "chat"
+        ],
+        "summary": "История сообщений треда",
+        "description": "**Заголовок `X-App-Id`** обязателен. Проверяется, что тред принадлежит указанной сессии и приложению (`app_id`). Идентификаторы в пути — hex 8–64, без дефисов.",
+        "operationId": "get_thread_messages_api_v1_sessions__session_id__threads__thread_id__messages_get",
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 8,
+              "maxLength": 64,
+              "pattern": "^[a-fA-F0-9]+$",
+              "description": "Идентификатор сессии или треда: hex 8–64 символов (как `uuid.uuid4().hex`), без дефисов",
+              "examples": [
+                "a1b2c3d4e5f6789012345678abcdef01"
+              ],
+              "title": "Session Id"
+            },
+            "description": "Идентификатор сессии или треда: hex 8–64 символов (как `uuid.uuid4().hex`), без дефисов"
+          },
+          {
+            "name": "thread_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 8,
+              "maxLength": 64,
+              "pattern": "^[a-fA-F0-9]+$",
+              "description": "Идентификатор сессии или треда: hex 8–64 символов (как `uuid.uuid4().hex`), без дефисов",
+              "examples": [
+                "a1b2c3d4e5f6789012345678abcdef01"
+              ],
+              "title": "Thread Id"
+            },
+            "description": "Идентификатор сессии или треда: hex 8–64 символов (как `uuid.uuid4().hex`), без дефисов"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ThreadMessagesResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Тред не найден или не принадлежит приложению"
+          },
+          "400": {
+            "description": "Нет или пустой X-App-Id"
+          },
+          "403": {
+            "description": "Неизвестный X-App-Id"
+          },
+          "422": {
+            "description": "Неверный формат session_id или thread_id в пути"
+          }
+        }
+      }
+    },
+    "/api/v1/health/rag": {
+      "get": {
+        "tags": [
+          "rag"
+        ],
+        "summary": "Проверка Chroma",
+        "description": "Требуется переменная окружения `CHROMA_URL` (например `http://chroma:8000`).",
+        "operationId": "health_rag_api_v1_health_rag_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthRag"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/rag/query": {
+      "post": {
+        "tags": [
+          "rag"
+        ],
+        "summary": "Поиск по коллекции RAG",
+        "description": "**Заголовок `X-App-Id`** обязателен. Строит эмбеддинг запроса через Ollama (`OLLAMA_EMBED_MODEL`), затем поиск в коллекции `chroma_collection` из конфига приложения. Нужны `rag_enabled: true` и непустая коллекция в `apps.yaml`.",
+        "operationId": "rag_query_api_v1_rag_query_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RagQueryRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RagQueryResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Нет X-App-Id"
+          },
+          "403": {
+            "description": "RAG отключён для приложения (`rag_disabled`)"
+          },
+          "404": {
+            "description": "Ошибка коллекции Chroma"
+          },
+          "502": {
+            "description": "Сбой эмбеддинга Ollama или запроса к Chroma"
+          },
+          "503": {
+            "description": "Chroma не настроен или недоступен"
+          },
+          "422": {
+            "description": "Ошибка валидации query/top_k"
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ]
+      }
+    },
+    "/internal/admin/v1/threads": {
+      "get": {
+        "tags": [
+          "internal"
+        ],
+        "summary": "Список тредов для инбокса",
+        "description": "Последние активные треды с превью последнего сообщения. Опциональный **`app_id`** — только известные id из `config/apps.yaml`.",
+        "operationId": "list_threads_inbox_internal_admin_v1_threads_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "app_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Фильтр по приложению (web_client, web_lite, …)",
+              "title": "App Id"
+            },
+            "description": "Фильтр по приложению (web_client, web_lite, …)"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 20,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000000,
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminThreadsListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Токен обязателен, но не передан"
+          },
+          "403": {
+            "description": "Неверный Bearer-токен"
+          },
+          "404": {
+            "description": "Неизвестный app_id (если передан фильтр)"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/admin/v1/sessions/{session_id}/threads/{thread_id}/reply": {
+      "post": {
+        "tags": [
+          "internal"
+        ],
+        "summary": "Ответ оператора в чат",
+        "description": "Добавляет сообщение `assistant` с `msg_source=human`. Тред должен существовать. Если на сервере задан **`INTERNAL_ADMIN_TOKEN`**, нужен заголовок **`Authorization: Bearer <токен>`** (в Swagger — **HTTP Bearer**). `session_id` и `thread_id` в пути — hex 8–64, без дефисов.",
+        "operationId": "operator_reply_to_thread_internal_admin_v1_sessions__session_id__threads__thread_id__reply_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 8,
+              "maxLength": 64,
+              "pattern": "^[a-fA-F0-9]+$",
+              "description": "Идентификатор сессии или треда: hex 8–64 символов (как `uuid.uuid4().hex`), без дефисов",
+              "examples": [
+                "a1b2c3d4e5f6789012345678abcdef01"
+              ],
+              "title": "Session Id"
+            },
+            "description": "Идентификатор сессии или треда: hex 8–64 символов (как `uuid.uuid4().hex`), без дефисов"
+          },
+          {
+            "name": "thread_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 8,
+              "maxLength": 64,
+              "pattern": "^[a-fA-F0-9]+$",
+              "description": "Идентификатор сессии или треда: hex 8–64 символов (как `uuid.uuid4().hex`), без дефисов",
+              "examples": [
+                "a1b2c3d4e5f6789012345678abcdef01"
+              ],
+              "title": "Thread Id"
+            },
+            "description": "Идентификатор сессии или треда: hex 8–64 символов (как `uuid.uuid4().hex`), без дефисов"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HumanReplyBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanReplyResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Токен обязателен, но не передан"
+          },
+          "403": {
+            "description": "Неверный Bearer-токен"
+          },
+          "404": {
+            "description": "Тред не найден"
+          },
+          "422": {
+            "description": "Ошибка валидации тела или пути"
+          }
+        }
+      }
+    },
+    "/api/v1/health": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "summary": "Публичный health",
+        "operationId": "health_public_api_v1_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthOk"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/health/live": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "summary": "Liveness (без БД)",
+        "description": "Для оркестраторов: процесс жив, без проверки зависимостей.",
+        "operationId": "health_live_api_v1_health_live_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthOk"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/health/ready": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "summary": "Readiness (PostgreSQL)",
+        "description": "Проверка пула БД; при недоступности Postgres — **503**.",
+        "operationId": "health_ready_api_v1_health_ready_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthDb"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/health/db": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "summary": "Проверка PostgreSQL",
+        "operationId": "health_db_api_v1_health_db_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthDb"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/admin/v1/health": {
+      "get": {
+        "tags": [
+          "internal"
+        ],
+        "summary": "Health админки",
+        "description": "Если задан **`INTERNAL_ADMIN_TOKEN`**, нужен **`Authorization: Bearer`**. В Swagger — схема **HTTP Bearer**.",
+        "operationId": "health_admin_internal_admin_v1_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthWithRole"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Токен обязателен, но не передан"
+          },
+          "403": {
+            "description": "Неверный токен"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/internal/dev/v1/health": {
+      "get": {
+        "tags": [
+          "internal"
+        ],
+        "summary": "Health dev-панели",
+        "description": "Если задан **`INTERNAL_DEV_TOKEN`**, нужен **`Authorization: Bearer`**. В Swagger — схема **HTTP Bearer**.",
+        "operationId": "health_dev_internal_dev_v1_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthWithRole"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Токен обязателен, но не передан"
+          },
+          "403": {
+            "description": "Неверный токен"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/meta/config-check": {
+      "get": {
+        "tags": [
+          "meta"
+        ],
+        "summary": "Проверка загрузки apps.yaml",
+        "operationId": "meta_config_check_api_v1_meta_config_check_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetaConfigCheck"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/meta/app/{app_id}": {
+      "get": {
+        "tags": [
+          "meta"
+        ],
+        "summary": "Публичные настройки приложения",
+        "description": "Флаги возможностей и инструментов для указанного `app_id` из `config/apps.yaml`. Имя коллекции Chroma и CORS в ответ не попадают.",
+        "operationId": "meta_app_public_api_v1_meta_app__app_id__get",
+        "parameters": [
+          {
+            "name": "app_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "App Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppMetaPublic"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Неизвестный app_id"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AdminInboxThreadRow": {
+        "properties": {
+          "thread_id": {
+            "type": "string",
+            "title": "Thread Id"
+          },
+          "session_id": {
+            "type": "string",
+            "title": "Session Id"
+          },
+          "app_id": {
+            "type": "string",
+            "title": "App Id"
+          },
+          "last_preview": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Preview"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          },
+          "message_count": {
+            "type": "integer",
+            "title": "Message Count",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "thread_id",
+          "session_id",
+          "app_id"
+        ],
+        "title": "AdminInboxThreadRow",
+        "description": "Строка списка тредов для инбокса оператора."
+      },
+      "AdminThreadsListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AdminInboxThreadRow"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "limit",
+          "offset"
+        ],
+        "title": "AdminThreadsListResponse"
+      },
+      "AppMetaPublic": {
+        "properties": {
+          "app_id": {
+            "type": "string",
+            "title": "App Id"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
+          },
+          "features": {
+            "additionalProperties": {
+              "type": "boolean"
+            },
+            "type": "object",
+            "title": "Features"
+          },
+          "tools": {
+            "additionalProperties": {
+              "type": "boolean"
+            },
+            "type": "object",
+            "title": "Tools"
+          },
+          "rag_enabled": {
+            "type": "boolean",
+            "title": "Rag Enabled",
+            "default": false
+          },
+          "ollama_model": {
+            "type": "string",
+            "title": "Ollama Model",
+            "default": ""
+          },
+          "prompt_version": {
+            "type": "string",
+            "title": "Prompt Version",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "app_id"
+        ],
+        "title": "AppMetaPublic",
+        "description": "Публичные настройки приложения (без CORS, chroma и прочих внутренних полей)."
+      },
+      "ChatMessageRow": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "role": {
+            "type": "string",
+            "title": "Role"
+          },
+          "content": {
+            "type": "string",
+            "title": "Content"
+          },
+          "msg_source": {
+            "type": "string",
+            "title": "Msg Source",
+            "description": "user | model | human | system",
+            "default": "model"
+          },
+          "author_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Author Label"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "role",
+          "content"
+        ],
+        "title": "ChatMessageRow"
+      },
+      "ChatRequest": {
+        "properties": {
+          "content": {
+            "type": "string",
+            "maxLength": 32000,
+            "minLength": 1,
+            "title": "Content"
+          },
+          "stream": {
+            "type": "boolean",
+            "title": "Stream",
+            "default": true
+          },
+          "session_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Id",
+            "description": "Опционально; hex 8–64, без дефисов. Продолжить существующую сессию."
+          },
+          "thread_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Thread Id",
+            "description": "Опционально; hex 8–64. Продолжить существующий тред в рамках сессии."
+          }
+        },
+        "type": "object",
+        "required": [
+          "content"
+        ],
+        "title": "ChatRequest",
+        "example": {
+          "content": "Привет",
+          "session_id": "a1b2c3d4e5f6789012345678abcdef01",
+          "stream": true,
+          "thread_id": "fedcba0987654321fedcba0987654321"
+        }
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "HealthDb": {
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "title": "Ok"
+          },
+          "backend": {
+            "type": "string",
+            "title": "Backend",
+            "examples": [
+              "postgresql"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "ok",
+          "backend"
+        ],
+        "title": "HealthDb"
+      },
+      "HealthLlm": {
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "title": "Ok"
+          },
+          "llm_base": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Llm Base"
+          },
+          "models": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Models"
+          },
+          "detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "required": [
+          "ok"
+        ],
+        "title": "HealthLlm"
+      },
+      "HealthOk": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "examples": [
+              "ok"
+            ]
+          },
+          "service": {
+            "type": "string",
+            "title": "Service",
+            "examples": [
+              "spektors-api"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "service"
+        ],
+        "title": "HealthOk"
+      },
+      "HealthRag": {
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "title": "Ok"
+          },
+          "chroma_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Chroma Url"
+          },
+          "detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "required": [
+          "ok"
+        ],
+        "title": "HealthRag"
+      },
+      "HealthWithRole": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "examples": [
+              "ok"
+            ]
+          },
+          "service": {
+            "type": "string",
+            "title": "Service",
+            "examples": [
+              "spektors-api"
+            ]
+          },
+          "role": {
+            "type": "string",
+            "title": "Role",
+            "examples": [
+              "admin"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "service",
+          "role"
+        ],
+        "title": "HealthWithRole"
+      },
+      "HumanReplyBody": {
+        "properties": {
+          "content": {
+            "type": "string",
+            "maxLength": 32000,
+            "minLength": 1,
+            "title": "Content"
+          },
+          "author_label": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Author Label",
+            "description": "Имя или роль, показываемое клиенту (например «Поддержка»)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "content",
+          "author_label"
+        ],
+        "title": "HumanReplyBody",
+        "example": {
+          "author_label": "Поддержка",
+          "content": "Здравствуйте! Уточните, пожалуйста, последние 4 цифры карты."
+        }
+      },
+      "HumanReplyResponse": {
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "title": "Ok"
+          },
+          "message_id": {
+            "type": "integer",
+            "title": "Message Id"
+          },
+          "app_id": {
+            "type": "string",
+            "title": "App Id"
+          },
+          "session_id": {
+            "type": "string",
+            "title": "Session Id"
+          },
+          "thread_id": {
+            "type": "string",
+            "title": "Thread Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "ok",
+          "message_id",
+          "app_id",
+          "session_id",
+          "thread_id"
+        ],
+        "title": "HumanReplyResponse"
+      },
+      "MetaConfigCheck": {
+        "properties": {
+          "apps_loaded": {
+            "type": "integer",
+            "title": "Apps Loaded"
+          },
+          "app_ids": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "App Ids"
+          }
+        },
+        "type": "object",
+        "required": [
+          "apps_loaded",
+          "app_ids"
+        ],
+        "title": "MetaConfigCheck"
+      },
+      "RagHit": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "document": {
+            "type": "string",
+            "title": "Document"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Metadata"
+          },
+          "distance": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Distance"
+          }
+        },
+        "type": "object",
+        "required": [
+          "document"
+        ],
+        "title": "RagHit"
+      },
+      "RagQueryRequest": {
+        "properties": {
+          "query": {
+            "type": "string",
+            "maxLength": 8000,
+            "minLength": 1,
+            "title": "Query"
+          },
+          "top_k": {
+            "type": "integer",
+            "maximum": 50.0,
+            "minimum": 1.0,
+            "title": "Top K",
+            "default": 5
+          }
+        },
+        "type": "object",
+        "required": [
+          "query"
+        ],
+        "title": "RagQueryRequest",
+        "example": {
+          "query": "Как подключить карту?",
+          "top_k": 5
+        }
+      },
+      "RagQueryResponse": {
+        "properties": {
+          "collection": {
+            "type": "string",
+            "title": "Collection"
+          },
+          "hits": {
+            "items": {
+              "$ref": "#/components/schemas/RagHit"
+            },
+            "type": "array",
+            "title": "Hits"
+          }
+        },
+        "type": "object",
+        "required": [
+          "collection",
+          "hits"
+        ],
+        "title": "RagQueryResponse"
+      },
+      "ThreadMessagesResponse": {
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "title": "Session Id"
+          },
+          "thread_id": {
+            "type": "string",
+            "title": "Thread Id"
+          },
+          "messages": {
+            "items": {
+              "$ref": "#/components/schemas/ChatMessageRow"
+            },
+            "type": "array",
+            "title": "Messages"
+          }
+        },
+        "type": "object",
+        "required": [
+          "session_id",
+          "thread_id",
+          "messages"
+        ],
+        "title": "ThreadMessagesResponse"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    },
+    "securitySchemes": {
+      "APIKeyHeader": {
+        "type": "apiKey",
+        "description": "Идентификатор приложения из `config/apps.yaml` (например `web_client`, `web_lite`, `web_admin`). Обязателен для чата, RAG-query и `POST /api/v1/chat/completions`. В Swagger: кнопка **Authorize** → API Key.",
+        "in": "header",
+        "name": "X-App-Id"
+      },
+      "HTTPBearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Для **`/internal/admin/*`** — значение **`INTERNAL_ADMIN_TOKEN`**; для **`/internal/dev/*`** — **`INTERNAL_DEV_TOKEN`**, если переменная задана на сервере. Иначе заголовок не требуется (только разработка). При **`INTERNAL_AUTH_STRICT`** без настроенного токена — **503**."
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "health",
+      "description": "Проверка живости сервиса и зависимостей."
+    },
+    {
+      "name": "llm",
+      "description": "Прокси к Ollama (`POST /api/v1/chat/completions`). Требуется **`X-App-Id`**; модель задаётся конфигом приложения (`ollama_model`), не телом запроса."
+    },
+    {
+      "name": "chat",
+      "description": "Чат с сохранением истории в PostgreSQL. **Обязательный заголовок `X-App-Id`** — идентификатор приложения из `config/apps.yaml` (например `web_client`, `web_lite`)."
+    },
+    {
+      "name": "meta",
+      "description": "Служебные метаданные (загрузка конфигурации приложений)."
+    },
+    {
+      "name": "rag",
+      "description": "RAG: векторный поиск в Chroma. Эмбеддинги считаются в Ollama (`OLLAMA_EMBED_MODEL`). Требуется `CHROMA_URL` и коллекция в конфиге приложения."
+    },
+    {
+      "name": "internal",
+      "description": "Внутренние маршруты админки и dev-панели. Если заданы `INTERNAL_ADMIN_TOKEN` / `INTERNAL_DEV_TOKEN`, нужен заголовок `Authorization: Bearer <токен>`."
+    }
+  ],
+  "servers": [
+    {
+      "url": "/",
+      "description": "Текущий хост (как в браузере)"
+    }
+  ]
+}

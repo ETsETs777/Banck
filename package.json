@@ -1,0 +1,27 @@
+{
+  "name": "spektors",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "devDependencies": {
+    "@playwright/test": "^1.49.1"
+  },
+  "scripts": {
+    "postinstall": "npm run build -w @spektors/api-client -w @spektors/next-i18n -w @spektors/chat-ui -w @spektors/ui-shell",
+    "check:i18n": "node scripts/check-i18n-keys.mjs",
+    "check:openapi": "node scripts/check-openapi.mjs",
+    "openapi:snapshot": "node scripts/write-openapi-snapshot.mjs",
+    "test:api": "node scripts/run-pytest.mjs",
+    "test:e2e": "playwright test",
+    "test:e2e:install": "playwright install chromium",
+    "dev:web-client": "npm run dev -w web-client",
+    "dev:web-lite": "npm run dev -w web-lite",
+    "dev:web-admin": "npm run dev -w web-admin",
+    "dev:web-dev": "npm run dev -w web-dev",
+    "dev:desktop": "npm run dev -w spektors-desktop",
+    "dev:api": "cd apps/api && py -3 -m uvicorn spektors_api.main:app --reload --port 8000",
+    "build:all": "npm run build --workspaces --if-present"
+  }
+}

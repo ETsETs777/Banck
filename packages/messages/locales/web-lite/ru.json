@@ -1,0 +1,46 @@
+{
+  "meta": {
+    "title": "Spektors · Lite",
+    "description": "Облегчённый клиент и чат"
+  },
+  "common": {
+    "themeToggle": "Переключить тему",
+    "themeToLight": "Светлая тема",
+    "themeToDark": "Тёмная тема"
+  },
+  "home": {
+    "badge": "web-lite · порт 3001",
+    "title": "Spektors · Lite",
+    "intro": "Тот же API, другой заголовок <codeAppId>X-App-Id: web_lite</codeAppId>. Переменная <codeApiUrl>NEXT_PUBLIC_API_URL</codeApiUrl> — базовый URL бэкенда."
+  },
+  "chat": {
+    "db": "БД",
+    "llm": "LLM",
+    "api": "API",
+    "statusOk": "ok",
+    "statusNo": "нет",
+    "statusWait": "…",
+    "empty": "Напишите сообщение — ответ сохранится в PostgreSQL.",
+    "you": "Вы",
+    "assistant": "Ассистент",
+    "badgeAi": "ИИ",
+    "badgeHuman": "Оператор",
+    "typing": "…",
+    "placeholder": "Сообщение…",
+    "streamLabel": "Стрим (SSE)",
+    "send": "Отправить",
+    "waiting": "Ждём…",
+    "newChat": "Новый диалог",
+    "copyThreadIds": "Скопировать ID",
+    "refreshThread": "Обновить с сервера",
+    "copiedIds": "Скопировано",
+    "copyFailed": "Не удалось скопировать",
+    "requestIdNote": "(ID запроса: {id})"
+  },
+  "locale": {
+    "label": "Язык",
+    "ru": "Русский",
+    "en": "English",
+    "nl": "Нидерландский"
+  }
+}

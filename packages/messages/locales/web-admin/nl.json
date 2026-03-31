@@ -1,0 +1,60 @@
+{
+  "meta": {
+    "title": "Spektors · Beheer",
+    "description": "Operatorconsole"
+  },
+  "common": {
+    "themeToggle": "Thema",
+    "themeToLight": "Licht thema",
+    "themeToDark": "Donker thema"
+  },
+  "nav": {
+    "overview": "Overzicht",
+    "inbox": "Chatwachtrij",
+    "swagger": "Swagger API"
+  },
+  "home": {
+    "badge": "web-admin · poort 3002",
+    "title": "Operatorconsole",
+    "intro": "Antwoorden van operators gaan via POST /internal/admin/v1/sessions/…/threads/…/reply met Bearer INTERNAL_ADMIN_TOKEN op de API (indien ingesteld). Zie docs/FRONTEND_TZ.md.",
+    "inboxCardTitle": "Chatwachtrij",
+    "inboxCardDesc": "Threadlijst en operatorantwoord",
+    "threadsCardTitle": "Threads in DB",
+    "threadsCardDesc": "Gesorteerd op laatste bericht; optionele app_id-filter"
+  },
+  "inbox": {
+    "title": "Chatwachtrij",
+    "intro": "Voer session_id en thread_id in (uit headers of body van de chat-API). Token is INTERNAL_ADMIN_TOKEN op de API; laat leeg in dev als de API geen token heeft.",
+    "securityHint": "Gebruik in productie geen langdurig admin-token in de browser — XSS kan het lekken. Gebruik bij voorkeur BFF (de knop hieronder gebruikt een server-side token).",
+    "threadsTitle": "Threads",
+    "threadsLoadError": "Threads laden mislukt",
+    "threadsEmpty": "Nog geen threads met berichten",
+    "filterAppId": "Filter op app_id (optioneel)",
+    "filterPlaceholder": "web_client, web_lite…",
+    "refreshThreads": "Lijst vernieuwen",
+    "lastUpdate": "Bijgewerkt",
+    "messagesCount": "ber.",
+    "useRow": "Invullen",
+    "bffTitle": "Verzenden via BFF (Next-server)",
+    "bffHint": "Zet op de Next-server INTERNAL_ADMIN_TOKEN en optioneel SPEKTORS_API_URL (anders NEXT_PUBLIC_API_URL).",
+    "bffSubmit": "Verzenden als operator (BFF)",
+    "bffUnavailable": "BFF niet beschikbaar: INTERNAL_ADMIN_TOKEN ontbreekt op de Next-server. Gebruik directe modus hieronder of voeg variabelen toe aan .env.local.",
+    "directTitle": "Directe API (ontwikkeling)",
+    "tokenLabel": "Bearer-token (admin)",
+    "sessionId": "session_id",
+    "threadId": "thread_id",
+    "defaultAuthor": "Support",
+    "authorLabel": "Label in chat",
+    "content": "Antwoordtekst",
+    "directSubmit": "Verzenden als operator",
+    "sending": "Verzenden…",
+    "successPrefix": "Verzonden",
+    "successHint": "De klant ziet het antwoord na synchronisatie van de chat."
+  },
+  "locale": {
+    "label": "Taal",
+    "ru": "Russisch",
+    "en": "Engels",
+    "nl": "Nederlands"
+  }
+}

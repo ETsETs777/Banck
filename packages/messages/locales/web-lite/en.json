@@ -1,0 +1,46 @@
+{
+  "meta": {
+    "title": "Spektors · Lite",
+    "description": "Lightweight client and chat"
+  },
+  "common": {
+    "themeToggle": "Toggle theme",
+    "themeToLight": "Light theme",
+    "themeToDark": "Dark theme"
+  },
+  "home": {
+    "badge": "web-lite · port 3001",
+    "title": "Spektors · Lite",
+    "intro": "Same API, different header <codeAppId>X-App-Id: web_lite</codeAppId>. <codeApiUrl>NEXT_PUBLIC_API_URL</codeApiUrl> is the backend base URL."
+  },
+  "chat": {
+    "db": "DB",
+    "llm": "LLM",
+    "api": "API",
+    "statusOk": "ok",
+    "statusNo": "no",
+    "statusWait": "…",
+    "empty": "Type a message — the reply is stored in PostgreSQL.",
+    "you": "You",
+    "assistant": "Assistant",
+    "badgeAi": "AI",
+    "badgeHuman": "Agent",
+    "typing": "…",
+    "placeholder": "Message…",
+    "streamLabel": "Stream (SSE)",
+    "send": "Send",
+    "waiting": "Waiting…",
+    "newChat": "New chat",
+    "copyThreadIds": "Copy IDs",
+    "refreshThread": "Refresh from server",
+    "copiedIds": "Copied",
+    "copyFailed": "Copy failed",
+    "requestIdNote": "(request ID: {id})"
+  },
+  "locale": {
+    "label": "Language",
+    "ru": "Русский",
+    "en": "English",
+    "nl": "Dutch"
+  }
+}

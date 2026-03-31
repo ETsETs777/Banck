@@ -1,0 +1,6 @@
+node_modules
+.next
+.git
+**/.venv
+**/dist
+chroma_data

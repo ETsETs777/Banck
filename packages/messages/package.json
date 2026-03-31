@@ -1,0 +1,17 @@
+{
+  "name": "@spektors/messages",
+  "version": "0.0.1",
+  "private": true,
+  "files": ["locales"],
+  "exports": {
+    "./web-client/ru.json": "./locales/web-client/ru.json",
+    "./web-client/en.json": "./locales/web-client/en.json",
+    "./web-client/nl.json": "./locales/web-client/nl.json",
+    "./web-lite/ru.json": "./locales/web-lite/ru.json",
+    "./web-lite/en.json": "./locales/web-lite/en.json",
+    "./web-lite/nl.json": "./locales/web-lite/nl.json",
+    "./web-admin/ru.json": "./locales/web-admin/ru.json",
+    "./web-admin/en.json": "./locales/web-admin/en.json",
+    "./web-admin/nl.json": "./locales/web-admin/nl.json"
+  }
+}

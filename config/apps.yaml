@@ -1,0 +1,64 @@
+# Реестр приложений: CORS для публичного API (internal admin/dev — отдельная авторизация).
+
+apps:
+  web_client:
+    app_id: web_client
+    display_name: "Веб-банк (основной)"
+    cors_origins:
+      - "http://localhost:3000"
+    features:
+      show_dashboard: true
+      show_products: true
+    tools:
+      get_balance: true
+      block_card: true
+      currency_rate: true
+      list_accounts: true
+      list_cards: true
+    rag_enabled: true
+    chroma_collection: rag_web_client
+    ollama_model: "qwen2.5:7b"
+    prompt_version: "1"
+
+  web_lite:
+    app_id: web_lite
+    display_name: "Веб-банк (lite)"
+    cors_origins:
+      - "http://localhost:3001"
+    features:
+      show_dashboard: false
+      show_products: false
+    tools:
+      get_balance: true
+      block_card: true
+      currency_rate: true
+      list_accounts: true
+      list_cards: true
+    rag_enabled: true
+    chroma_collection: rag_web_lite
+    ollama_model: "qwen2.5:7b"
+    prompt_version: "1"
+
+  web_admin:
+    app_id: web_admin
+    display_name: "Админ-панель"
+    cors_origins:
+      - "http://localhost:3002"
+    features: {}
+    tools: {}
+    rag_enabled: false
+    chroma_collection: ""
+    ollama_model: ""
+    prompt_version: "0"
+
+  web_dev:
+    app_id: web_dev
+    display_name: "Панель разработчика"
+    cors_origins:
+      - "http://localhost:3003"
+    features: {}
+    tools: {}
+    rag_enabled: false
+    chroma_collection: ""
+    ollama_model: ""
+    prompt_version: "0"

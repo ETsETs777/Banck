@@ -1,0 +1,60 @@
+{
+  "meta": {
+    "title": "Spektors · Админ",
+    "description": "Панель оператора"
+  },
+  "common": {
+    "themeToggle": "Тема оформления",
+    "themeToLight": "Включить светлую тему",
+    "themeToDark": "Включить тёмную тему"
+  },
+  "nav": {
+    "overview": "Обзор",
+    "inbox": "Очередь чатов",
+    "swagger": "Swagger API"
+  },
+  "home": {
+    "badge": "web-admin · порт 3002",
+    "title": "Панель оператора",
+    "intro": "Ответы оператора уходят через POST /internal/admin/v1/sessions/…/threads/…/reply с Bearer INTERNAL_ADMIN_TOKEN на API (если задан). Подробности в docs/FRONTEND_TZ.md.",
+    "inboxCardTitle": "Очередь чатов",
+    "inboxCardDesc": "Список тредов и ответ оператора",
+    "threadsCardTitle": "Треды в БД",
+    "threadsCardDesc": "Сортировка по последнему сообщению; фильтр по app_id"
+  },
+  "inbox": {
+    "title": "Очередь чатов",
+    "intro": "Укажите session_id и thread_id (из заголовков или тела ответа чата). Токен — значение INTERNAL_ADMIN_TOKEN на API; в режиме разработки можно оставить пустым при отсутствии токена на сервере.",
+    "securityHint": "В продакшене не вводите долгоживущий admin-токен в браузер: при XSS он может утечь. Предпочтительно BFF (кнопка ниже использует серверный токен).",
+    "threadsTitle": "Треды",
+    "threadsLoadError": "Не удалось загрузить треды",
+    "threadsEmpty": "Пока нет тредов с сообщениями",
+    "filterAppId": "Фильтр app_id (необязательно)",
+    "filterPlaceholder": "web_client, web_lite…",
+    "refreshThreads": "Обновить список",
+    "lastUpdate": "Обновлено",
+    "messagesCount": "сообщ.",
+    "useRow": "Подставить",
+    "bffTitle": "Отправка через BFF (сервер Next)",
+    "bffHint": "Задайте на сервере Next: INTERNAL_ADMIN_TOKEN и при необходимости SPEKTORS_API_URL (иначе берётся NEXT_PUBLIC_API_URL).",
+    "bffSubmit": "Отправить как оператор (BFF)",
+    "bffUnavailable": "BFF недоступен: на сервере Next не задан INTERNAL_ADMIN_TOKEN. Используйте прямой режим ниже или добавьте переменные в .env.local.",
+    "directTitle": "Прямой вызов API (разработка)",
+    "tokenLabel": "Bearer токен (admin)",
+    "sessionId": "session_id",
+    "threadId": "thread_id",
+    "defaultAuthor": "Поддержка",
+    "authorLabel": "Подпись в чате",
+    "content": "Текст ответа",
+    "directSubmit": "Отправить как оператор",
+    "sending": "Отправка…",
+    "successPrefix": "Отправлено",
+    "successHint": "Клиент увидит ответ после синхронизации чата."
+  },
+  "locale": {
+    "label": "Язык",
+    "ru": "Русский",
+    "en": "English",
+    "nl": "Нидерландский"
+  }
+}
