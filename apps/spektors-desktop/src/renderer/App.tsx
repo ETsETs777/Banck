@@ -7,13 +7,53 @@ import {
 import {
   useCallback,
   useEffect,
-  useLayoutEffect,
+  useMemo,
   useRef,
   useState,
   type CSSProperties,
   type ReactNode,
 } from "react";
+import type {
+  DockerContainerRow,
+  LauncherEnvProfile,
+  LauncherUserConfig,
+  LogEntry,
+} from "../shared/launcher-types";
+import { DEFAULT_LAUNCHER_CONFIG } from "../shared/launcher-types";
 import type { SpektorsLauncherAPI } from "./spektors-launcher";
+import { CommandLog } from "./launcher/components/log/CommandLog";
+import { SidebarCardBody } from "./launcher/components/sidebar/SidebarCardBody";
+import {
+  PinnedCardDropZone,
+  SidebarCardShell,
+} from "./launcher/components/shell/SidebarCardShell";
+import { LauncherExpandedCardModal } from "./launcher/components/modals/LauncherExpandedCardModal";
+import { LauncherScratchpadModal } from "./launcher/components/modals/LauncherScratchpadModal";
+import {
+  IconApi,
+  IconBrowser,
+  IconDocker,
+  IconEnv,
+  IconFolder,
+  IconLog,
+  IconMenu,
+  IconNotes,
+  IconPlay,
+  IconRefresh,
+} from "./launcher/components/shell/LauncherIcons";
+import { LauncherPanel } from "./launcher/components/shell/LauncherPanel";
+import { inferLevel, makeLogEntry } from "./launcher/utils/log-utils";
+import { WindowChrome } from "./launcher/components/shell/WindowChrome";
+import {
+  LauncherCardsProvider,
+  type LauncherCardsValue,
+} from "./launcher/context/launcher-cards-context";
+import {
+  isSidebarCardId,
+  normalizeSidebarOrder,
+  reorderSidebarCards,
+  type SidebarCardId,
+} from "./launcher/utils/sidebar-card-order";
 
 function getApi(): SpektorsLauncherAPI | null {
   return typeof window !== "undefined" && window.spektorsLauncher
@@ -22,19 +62,10 @@ function getApi(): SpektorsLauncherAPI | null {
 }
 
 function isElectronUserAgent(): boolean {
-  return typeof navigator !== "undefined" && navigator.userAgent.includes("Electron");
+  return (
+    typeof navigator !== "undefined" && navigator.userAgent.includes("Electron")
+  );
 }
-
-const LINKS: { label: string; url: string }[] = [
-  { label: "web-client :3000", url: "http://localhost:3000" },
-  { label: "web-lite :3001", url: "http://localhost:3001" },
-  { label: "web-admin :3002", url: "http://localhost:3002" },
-  { label: "web-dev :3003", url: "http://localhost:3003" },
-  { label: "API Swagger", url: "http://localhost:8000/docs" },
-];
-
-const PSQL =
-  "psql postgresql://spektors:spektors@localhost:5432/spektors";
 
 const ROOT_STORAGE_KEY = "spektors-launcher:root";
 const RECENT_ROOTS_KEY = "spektors-launcher:recent-roots";
@@ -43,84 +74,14 @@ const NAV_KEY = "spektors-launcher:active-nav";
 
 type NavId = "repo" | "services" | "docker" | "api" | "env" | "log";
 
-const dragStyle = { WebkitAppRegion: "drag" } as CSSProperties;
 const noDragStyle = { WebkitAppRegion: "no-drag" } as CSSProperties;
 
-function Panel(props: {
-  title: string;
-  description?: string;
-  icon: ReactNode;
-  children: ReactNode;
-  actions?: ReactNode;
-}) {
-  return (
-    <div className="rounded-lg border border-[var(--glass-border)] bg-[var(--panel-fill)] p-4">
-      <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
-        <div className="flex min-w-0 items-start gap-2.5">
-          <span className="mt-0.5 shrink-0 text-accent">{props.icon}</span>
-          <div className="min-w-0">
-            <h2 className="text-sm font-semibold text-[color:var(--fg)]">
-              {props.title}
-            </h2>
-            {props.description ? (
-              <p className="mt-1 text-[11px] leading-relaxed text-[color:var(--fg-muted)]">
-                {props.description}
-              </p>
-            ) : null}
-          </div>
-        </div>
-        {props.actions ? (
-          <div className="shrink-0" style={noDragStyle}>
-            {props.actions}
-          </div>
-        ) : null}
-      </div>
-      <div style={noDragStyle}>{props.children}</div>
-    </div>
-  );
-}
-
-function WindowChrome(props: { api: SpektorsLauncherAPI }) {
-  return (
-    <div className="flex h-10 shrink-0 select-none items-stretch border-b border-[var(--glass-border)] bg-[var(--sidebar-bg)]">
-      <div
-        className="flex min-w-0 flex-1 items-center px-3"
-        style={dragStyle}
-        onDoubleClick={() => props.api.winMaximizeToggle()}
-        title="Перетащите окно. Двойной клик — развернуть или восстановить."
-      >
-        <span className="pointer-events-none text-xs font-semibold tracking-tight text-[color:var(--fg-muted)]">
-          Spektors Launcher
-        </span>
-      </div>
-      <div className="flex shrink-0" style={noDragStyle}>
-        <button
-          type="button"
-          className="flex h-10 w-11 items-center justify-center text-[color:var(--fg-muted)] transition hover:bg-[var(--glass-highlight)]"
-          onClick={() => props.api.winMinimize()}
-          aria-label="Свернуть"
-        >
-          <span className="pb-0.5 text-base leading-none">−</span>
-        </button>
-        <button
-          type="button"
-          className="flex h-10 w-11 items-center justify-center text-[color:var(--fg-muted)] transition hover:bg-[var(--glass-highlight)]"
-          onClick={() => props.api.winMaximizeToggle()}
-          aria-label="Развернуть или восстановить"
-        >
-          <span className="text-[10px] font-bold leading-none">▢</span>
-        </button>
-        <button
-          type="button"
-          className="flex h-10 w-11 items-center justify-center text-[color:var(--fg-muted)] transition hover:bg-red-600 hover:text-white"
-          onClick={() => props.api.winClose()}
-          aria-label="Закрыть"
-        >
-          <span className="text-lg leading-none">×</span>
-        </button>
-      </div>
-    </div>
-  );
+function dockerBaseArgs(cfg: LauncherUserConfig): string[] {
+  const a = ["compose"];
+  if (cfg.composeFile?.trim()) {
+    a.push("-f", cfg.composeFile.trim());
+  }
+  return a;
 }
 
 function NavItem(props: {
@@ -133,17 +94,23 @@ function NavItem(props: {
     <button
       type="button"
       onClick={props.onClick}
-      className={`flex w-full items-center gap-2.5 rounded-md border px-2.5 py-2 text-left text-sm transition ${
+      className={`flex w-full items-center gap-2.5 rounded-xl border px-2.5 py-2.5 text-left text-sm transition duration-200 max-lg:w-auto max-lg:min-w-[104px] max-lg:max-w-[148px] max-lg:shrink-0 lg:w-full ${
         props.active
-          ? "border-accent/35 bg-accent/10 text-[color:var(--fg)]"
-          : "border-transparent text-[color:var(--fg-muted)] hover:border-[var(--glass-border)] hover:bg-[var(--panel-fill)]"
+          ? "border-accent/40 bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] text-[color:var(--fg)] shadow-[0_0_24px_-10px_color-mix(in_srgb,var(--accent)_50%,transparent)]"
+          : "border-transparent text-[color:var(--fg-muted)] hover:border-[color-mix(in_srgb,var(--glass-border)_70%,transparent)] hover:bg-[var(--panel-fill)] hover:text-[color:var(--fg)]"
       }`}
       style={noDragStyle}
     >
-      <span className={props.active ? "text-accent" : "opacity-80"}>
+      <span
+        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border transition ${
+          props.active
+            ? "border-accent/30 bg-accent/15 text-accent"
+            : "border-transparent bg-black/10 text-[color:var(--fg-muted)] opacity-90"
+        }`}
+      >
         {props.icon}
       </span>
-      <span className="font-medium">{props.label}</span>
+      <span className="font-semibold tracking-tight">{props.label}</span>
     </button>
   );
 }
@@ -179,17 +146,7 @@ export default function App() {
   }, []);
 
   const [root, setRoot] = useState("");
-  const logEndRef = useRef<HTMLDivElement>(null);
-  const logContainerRef = useRef<HTMLPreElement>(null);
-
-  useEffect(() => {
-    const saved = localStorage.getItem(ROOT_STORAGE_KEY);
-    if (saved) setRoot(saved);
-  }, []);
-
-  useEffect(() => {
-    if (root.trim()) localStorage.setItem(ROOT_STORAGE_KEY, root.trim());
-  }, [root]);
+  const [cfg, setCfg] = useState<LauncherUserConfig>(DEFAULT_LAUNCHER_CONFIG);
   const [valid, setValid] = useState<{
     ok: boolean;
     reason?: string;
@@ -197,7 +154,7 @@ export default function App() {
   const [envText, setEnvText] = useState("");
   const [envDirty, setEnvDirty] = useState(false);
   const [hasEnvExample, setHasEnvExample] = useState(false);
-  const [log, setLog] = useState<string[]>([]);
+  const [logEntries, setLogEntries] = useState<LogEntry[]>([]);
   const [busy, setBusy] = useState<string | null>(null);
   const [reach, setReach] = useState<Record<string, boolean | null>>({});
   const [probing, setProbing] = useState(false);
@@ -226,8 +183,77 @@ export default function App() {
     } catch {
       /* */
     }
-    return "repo";
+    return "log";
   });
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [containers, setContainers] = useState<DockerContainerRow[]>([]);
+  const [dockerErr, setDockerErr] = useState<string | null>(null);
+  const [stats, setStats] = useState<Awaited<
+    ReturnType<SpektorsLauncherAPI["dockerStats"]>
+  > >([]);
+  const [gitBranch, setGitBranch] = useState("");
+  const [gitDirty, setGitDirty] = useState(false);
+  const [branches, setBranches] = useState<string[]>([]);
+  const [branchPick, setBranchPick] = useState("");
+  const [alembicHead, setAlembicHead] = useState<string | null>(null);
+  const [toolDocker, setToolDocker] = useState<string | null>(null);
+  const [toolGit, setToolGit] = useState<string | null>(null);
+  const [newSvcLabel, setNewSvcLabel] = useState("");
+  const [newSvcUrl, setNewSvcUrl] = useState("");
+  const [newServerName, setNewServerName] = useState("");
+  const [newServerCwd, setNewServerCwd] = useState("apps/web-client");
+  const [newServerCmd, setNewServerCmd] = useState("npm");
+  const [newServerArgs, setNewServerArgs] = useState("run dev");
+  const [managedRunning, setManagedRunning] = useState<
+    Record<string, { procId: string; name: string }>
+  >({});
+  const [logTailId, setLogTailId] = useState<string | null>(null);
+  const logTailIdRef = useRef<string | null>(null);
+  const [snippetLabel, setSnippetLabel] = useState("");
+  const [snippetCmd, setSnippetCmd] = useState("npm");
+  const [snippetArgs, setSnippetArgs] = useState("run build");
+  const [snippetCwd, setSnippetCwd] = useState(".");
+  const [draggingCardId, setDraggingCardId] = useState<string | null>(null);
+  const [expandedCardId, setExpandedCardId] = useState<SidebarCardId | null>(
+    null,
+  );
+  const [scratchpadOpen, setScratchpadOpen] = useState(false);
+
+  const openExpandedCard = useCallback((id: SidebarCardId) => {
+    setExpandedCardId(id);
+  }, []);
+
+  const sidebarOrder = useMemo(
+    () => normalizeSidebarOrder(cfg.sidebarCardOrder),
+    [cfg.sidebarCardOrder],
+  );
+
+  const onDropReorder = useCallback(
+    (fromId: string, toId: string) => {
+      setCfg((c) => {
+        const order = normalizeSidebarOrder(c.sidebarCardOrder);
+        let pinnedSidebarCardId = c.pinnedSidebarCardId;
+        if (pinnedSidebarCardId === fromId) {
+          pinnedSidebarCardId = null;
+        }
+        const sidebarCardOrder = reorderSidebarCards(order, fromId, toId);
+        const next = { ...c, sidebarCardOrder, pinnedSidebarCardId };
+        void api?.setLauncherConfig(next);
+        return next;
+      });
+    },
+    [api],
+  );
+
+  const prevReachRef = useRef<Record<string, boolean | null>>({});
+  const sectionRefs = useRef<
+    Partial<
+      Record<
+        NavId | "logPanel" | "customServers" | "snippets",
+        HTMLDivElement | null
+      >
+    >
+  >({});
 
   useEffect(() => {
     try {
@@ -237,19 +263,99 @@ export default function App() {
     }
   }, [activeNav]);
 
-  const pushRecentRoot = useCallback((dir: string) => {
-    const d = dir.trim();
-    if (!d) return;
-    setRecentRoots((prev) => {
-      const next = [d, ...prev.filter((x) => x !== d)].slice(0, 5);
+  useEffect(() => {
+    if (activeNav === "log") {
+      sectionRefs.current.logPanel?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    } else {
+      const el = sectionRefs.current[activeNav];
+      el?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [activeNav]);
+
+  useEffect(() => {
+    if (!expandedCardId && !scratchpadOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setExpandedCardId(null);
+        setScratchpadOpen(false);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [expandedCardId, scratchpadOpen]);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(ROOT_STORAGE_KEY);
+      if (saved?.trim()) setRoot(saved.trim());
+    } catch {
+      /* */
+    }
+  }, []);
+
+  useEffect(() => {
+    if (root.trim()) localStorage.setItem(ROOT_STORAGE_KEY, root.trim());
+  }, [root]);
+
+  const appendEntry = useCallback((e: LogEntry) => {
+    setLogEntries((prev) => [...prev.slice(-4000), e]);
+  }, []);
+
+  const clearLog = useCallback(() => setLogEntries([]), []);
+
+  const pushHistory = useCallback(
+    (line: string) => {
+      setCfg((c) => {
+        const next = {
+          ...c,
+          commandHistory: [line, ...c.commandHistory.filter((x) => x !== line)].slice(
+            0,
+            50,
+          ),
+        };
+        void api?.setLauncherConfig(next);
+        return next;
+      });
+    },
+    [api],
+  );
+
+  const persistCfg = useCallback(async () => {
+    if (!api) return;
+    await api.setLauncherConfig(cfg);
+    appendEntry(
+      makeLogEntry("config", "Конфигурация лаунчера сохранена.", "info"),
+    );
+  }, [api, cfg, appendEntry]);
+
+  useEffect(() => {
+    if (!api || bridge !== "ok") return;
+    void (async () => {
+      const c = await api.getLauncherConfig();
+      setCfg(c);
+    })();
+  }, [api, bridge]);
+
+  useEffect(() => {
+    if (!api || bridge !== "ok") return;
+    void (async () => {
       try {
-        localStorage.setItem(RECENT_ROOTS_KEY, JSON.stringify(next));
+        const fileJson = await api.readProfileFile();
+        if (fileJson?.trim()) {
+          const hasLs = localStorage.getItem(SPEKTORS_PROFILE_STORAGE_KEY);
+          if (!hasLs) {
+            localStorage.setItem(SPEKTORS_PROFILE_STORAGE_KEY, fileJson);
+            setProfileMenuKey((k) => k + 1);
+          }
+        }
       } catch {
         /* */
       }
-      return next;
-    });
-  }, []);
+    })();
+  }, [api, bridge]);
 
   const persistProfileToDisk = useCallback(
     async (p: SpektorsProfileV1) => {
@@ -266,17 +372,10 @@ export default function App() {
   useEffect(() => {
     if (!api || bridge !== "ok") return;
     void (async () => {
-      try {
-        const fileJson = await api.readProfileFile();
-        if (!fileJson?.trim()) return;
-        const hasLs = localStorage.getItem(SPEKTORS_PROFILE_STORAGE_KEY);
-        if (!hasLs) {
-          localStorage.setItem(SPEKTORS_PROFILE_STORAGE_KEY, fileJson);
-          setProfileMenuKey((k) => k + 1);
-        }
-      } catch {
-        /* */
-      }
+      const d = await api.which("docker");
+      setToolDocker(d.found ? d.path : null);
+      const g = await api.which("git");
+      setToolGit(g.found ? g.path : null);
     })();
   }, [api, bridge]);
 
@@ -289,14 +388,6 @@ export default function App() {
     const id = window.setInterval(tick, 12000);
     return () => window.clearInterval(id);
   }, [api, bridge]);
-
-  const appendLog = useCallback((line: string) => {
-    setLog((prev) => [...prev.slice(-200), line]);
-  }, []);
-
-  useLayoutEffect(() => {
-    logEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [log]);
 
   const refreshValidation = useCallback(async () => {
     if (!api || !root.trim()) {
@@ -328,54 +419,154 @@ export default function App() {
     setProbing(true);
     try {
       const next: Record<string, boolean | null> = {};
-      for (const { url } of LINKS) {
+      for (const { url } of cfg.services) {
         next[url] = await api.probeUrl(url);
       }
       setReach(next);
     } finally {
       setProbing(false);
     }
-  }, [api, valid?.ok]);
+  }, [api, valid?.ok, cfg.services]);
 
   useEffect(() => {
     if (!api || !valid?.ok) {
       setReach({});
       return;
     }
-    let cancelled = false;
     void (async () => {
       await runProbeAll();
-      if (cancelled) return;
     })();
     const id = setInterval(() => {
       void runProbeAll();
     }, 12000);
     return () => {
-      cancelled = true;
       clearInterval(id);
     };
   }, [api, valid?.ok, runProbeAll]);
 
-  const pickFolder = async () => {
-    if (!api) return;
-    const p = await api.openDirectory();
-    if (p) {
-      setRoot(p);
-      pushRecentRoot(p);
+  useEffect(() => {
+    if (!api || !valid?.ok || !cfg.webhookUrl?.trim()) return;
+    for (const s of cfg.services) {
+      const was = prevReachRef.current[s.url];
+      const now = reach[s.url];
+      if (was === true && now === false) {
+        void api.webhookNotify(
+          cfg.webhookUrl.trim(),
+          `Spektors Launcher: недоступен ${s.label} (${s.url})`,
+        );
+      }
+      prevReachRef.current[s.url] = now ?? null;
     }
-  };
+  }, [reach, api, valid?.ok, cfg.services, cfg.webhookUrl]);
 
-  const copyRootPath = async () => {
-    if (!api || !root.trim()) return;
-    await api.writeClipboard(root.trim());
-    appendLog("Путь к репозиторию скопирован.");
-  };
+  const refreshDocker = useCallback(async () => {
+    if (!api || !root.trim() || !valid?.ok) return;
+    const ps = await api.dockerComposePs(root.trim(), cfg.composeFile);
+    if (ps.ok) {
+      setContainers(ps.containers);
+      setDockerErr(null);
+    } else {
+      setContainers([]);
+      setDockerErr(ps.error ?? "docker error");
+    }
+    const st = await api.dockerStats(root.trim(), cfg.composeFile);
+    setStats(st);
+  }, [api, root, valid?.ok, cfg.composeFile]);
 
-  const openRepoFolder = async () => {
-    if (!api || !root.trim()) return;
-    const err = await api.openPath(root.trim());
-    if (err) appendLog(`Не удалось открыть папку: ${err}`);
-  };
+  useEffect(() => {
+    if (!valid?.ok || !root.trim()) {
+      setContainers([]);
+      setStats([]);
+      return;
+    }
+    void refreshDocker();
+    const id = setInterval(() => void refreshDocker(), 15000);
+    return () => clearInterval(id);
+  }, [valid?.ok, root, refreshDocker]);
+
+  const refreshGit = useCallback(async () => {
+    if (!api || !root.trim() || !valid?.ok) return;
+    const m = await api.gitMeta(root.trim());
+    setGitBranch(m.branch);
+    setGitDirty(m.dirty);
+    const br = await api.gitBranches(root.trim());
+    setBranches(br);
+  }, [api, root, valid?.ok]);
+
+  useEffect(() => {
+    void refreshGit();
+  }, [refreshGit]);
+
+  const refreshAlembic = useCallback(async () => {
+    if (!api || !root.trim() || !valid?.ok) return;
+    const r = await api.runCommand({
+      command: "py",
+      args: ["-3", "-m", "alembic", "current"],
+      cwd: `${root.trim()}/apps/api`,
+    });
+    if (r.code === 0) {
+      setAlembicHead((r.stdout || "").trim() || "ok");
+    } else {
+      setAlembicHead(null);
+    }
+  }, [api, root, valid?.ok]);
+
+  useEffect(() => {
+    void refreshAlembic();
+  }, [refreshAlembic]);
+
+  useEffect(() => {
+    logTailIdRef.current = logTailId;
+  }, [logTailId]);
+
+  useEffect(() => {
+    if (!api || bridge !== "ok") return;
+    const off1 = api.onStreamChunk((p) => {
+      appendEntry(
+        makeLogEntry(
+          `stream:${p.id.slice(0, 8)}`,
+          p.chunk,
+          p.stream === "stderr" ? "warning" : "info",
+        ),
+      );
+    });
+    const off2 = api.onStreamEnd((p) => {
+      appendEntry(
+        makeLogEntry(
+          "stream",
+          `[stream ${p.id.slice(0, 8)}] завершён, code=${p.code}${p.error ? ` ${p.error}` : ""}`,
+          p.code === 0 || p.code === null ? "info" : "error",
+        ),
+      );
+      if (logTailIdRef.current === p.id) setLogTailId(null);
+    });
+    return () => {
+      off1();
+      off2();
+    };
+  }, [api, bridge, appendEntry]);
+
+  const containerByCompose = useCallback(
+    (name?: string) =>
+      name
+        ? containers.find(
+            (c) =>
+              c.service === name ||
+              c.name.includes(name) ||
+              name.includes(c.service),
+          )
+        : undefined,
+    [containers],
+  );
+
+  const appendFromRun = useCallback(
+    (source: string, r: { code: number | null; stdout: string; stderr: string }) => {
+      const level = inferLevel(r.stderr, r.code);
+      const raw = `[exit ${r.code}]\n${r.stdout || ""}${r.stderr || ""}`.trim();
+      appendEntry(makeLogEntry(source, raw, level));
+    },
+    [appendEntry],
+  );
 
   const runDocker = async (label: string, args: string[]) => {
     if (!api || !valid?.ok) return;
@@ -386,92 +577,200 @@ export default function App() {
         args,
         cwd: root.trim(),
       });
-      const out = `[${label}] exit ${r.code}\n${r.stdout || ""}${r.stderr || ""}`.trim();
-      appendLog(out);
+      appendFromRun(label, r);
+      pushHistory(`docker ${args.join(" ")}`);
+      void refreshDocker();
     } finally {
       setBusy(null);
     }
   };
 
-  const runAlembic = async () => {
-    if (!api || !valid?.ok) return;
-    setBusy("alembic");
-    try {
-      const r = await api.runCommand({
-        command: "py",
-        args: ["-3", "-m", "alembic", "upgrade", "head"],
-        cwd: `${root.trim()}/apps/api`,
-      });
-      appendLog(
-        `[alembic] exit ${r.code}\n${r.stdout || ""}${r.stderr || ""}`.trim(),
-      );
-    } finally {
-      setBusy(null);
-    }
-  };
-
-  const startApiBackground = async () => {
-    if (!api || !valid?.ok) return;
-    const { pid } = await api.spawnBackground({
-      command: "py",
-      args: [
-        "-3",
-        "-m",
-        "uvicorn",
-        "spektors_api.main:app",
-        "--reload",
-        "--port",
-        "8000",
-      ],
-      cwd: `${root.trim()}/apps/api`,
+  const pushRecentRoot = useCallback((dir: string) => {
+    const d = dir.trim();
+    if (!d) return;
+    setRecentRoots((prev) => {
+      const next = [d, ...prev.filter((x) => x !== d)].slice(0, 5);
+      try {
+        localStorage.setItem(RECENT_ROOTS_KEY, JSON.stringify(next));
+      } catch {
+        /* */
+      }
+      return next;
     });
-    appendLog(
-      pid != null
-        ? `API запущен в фоне (pid ${pid}). Остановите процесс вручную при необходимости.`
-        : "API: процесс запущен в фоне.",
-    );
+  }, []);
+
+  const applyProjectRoot = useCallback(
+    (dir: string) => {
+      const d = dir.trim();
+      if (!d) return;
+      setRoot(d);
+      pushRecentRoot(d);
+    },
+    [pushRecentRoot],
+  );
+
+  const pickFolder = async () => {
+    if (!api) return;
+    const p = await api.openDirectory();
+    if (p) applyProjectRoot(p);
   };
+
+  useEffect(() => {
+    if (!api || bridge !== "ok") return;
+    try {
+      if (localStorage.getItem(ROOT_STORAGE_KEY)?.trim()) return;
+    } catch {
+      /* */
+    }
+    let cancelled = false;
+    void (async () => {
+      const found = await api.detectProjectRoot();
+      if (cancelled || !found) return;
+      applyProjectRoot(found);
+      appendEntry(
+        makeLogEntry(
+          "repo",
+          `Корень определён автоматически: ${found}`,
+          "info",
+        ),
+      );
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [api, bridge, appendEntry, applyProjectRoot]);
 
   const saveEnv = async () => {
     if (!api || !valid?.ok) return;
+    const b = await api.backupEnv(root.trim());
+    if (b.ok) {
+      appendEntry(
+        makeLogEntry("env", `Резервная копия .env: ${b.path}`, "info"),
+      );
+    }
     await api.writeEnv(root.trim(), envText);
     setEnvDirty(false);
-    appendLog(".env сохранён.");
+    appendEntry(makeLogEntry("env", ".env сохранён.", "info"));
   };
 
-  const copyFromExample = async () => {
+  const startTail = async (service: string) => {
     if (!api || !valid?.ok) return;
-    await api.copyEnvExample(root.trim());
-    await loadEnv();
-    appendLog(".env скопирован из .env.example");
+    if (logTailId) await api.stopLogStream(logTailId);
+    const base = dockerBaseArgs(cfg);
+    try {
+      const { id } = await api.spawnLogStream({
+        command: "docker",
+        args: [...base, "logs", "-f", "--no-color", service],
+        cwd: root.trim(),
+      });
+      setLogTailId(id);
+      appendEntry(
+        makeLogEntry(
+          "docker",
+          `Поток логов: ${service} (stream ${id.slice(0, 8)})`,
+          "info",
+        ),
+      );
+    } catch (e) {
+      appendEntry(
+        makeLogEntry(
+          "docker",
+          `Поток логов не запущен: ${String(e)}`,
+          "error",
+        ),
+      );
+    }
   };
 
-  const copyPsql = async () => {
-    if (!api) return;
-    await api.writeClipboard(PSQL);
-    appendLog("Строка psql скопирована в буфер.");
+  const stopTail = async () => {
+    if (!api || !logTailId) return;
+    await api.stopLogStream(logTailId);
+    setLogTailId(null);
   };
 
-  const clearLog = () => setLog([]);
-
-  const copyLog = async () => {
-    if (!api) return;
-    const text =
-      log.length === 0
-        ? ""
-        : log.join("\n\n—\n\n");
-    await api.writeClipboard(text);
-    appendLog("Лог скопирован в буфер.");
+  const restartAllConfirm = async () => {
+    if (!api || !valid?.ok) return;
+    if (!window.confirm("Перезапустить все сервисы docker compose?")) return;
+    const r = await api.dockerComposeRestart({
+      root: root.trim(),
+      composeFile: cfg.composeFile,
+    });
+    appendFromRun("compose restart all", r);
+    void refreshDocker();
   };
+
+  const startAllComposeStack = useCallback(async () => {
+    if (!api || !valid?.ok) return;
+    if (!toolDocker) {
+      appendEntry(
+        makeLogEntry(
+          "compose",
+          "Docker не найден в PATH — запуск стека недоступен.",
+          "warning",
+        ),
+      );
+      return;
+    }
+    if (
+      !window.confirm(
+        "Запустить все сервисы docker compose в фоне (docker compose up -d)? Уже запущенные контейнеры обычно не пересоздаются; поднимутся отсутствующие.",
+      )
+    )
+      return;
+    setBusy("compose up -d");
+    try {
+      const r = await api.dockerComposeUp({
+        root: root.trim(),
+        composeFile: cfg.composeFile,
+      });
+      appendFromRun("compose up -d", r);
+      void refreshDocker();
+      void runProbeAll();
+    } finally {
+      setBusy(null);
+    }
+  }, [
+    api,
+    valid?.ok,
+    toolDocker,
+    root,
+    cfg.composeFile,
+    appendFromRun,
+    appendEntry,
+    refreshDocker,
+    runProbeAll,
+  ]);
+
+  const sourceOptions = useMemo(() => {
+    const u = new Set<string>();
+    for (const e of logEntries) u.add(e.source);
+    return [...u].sort();
+  }, [logEntries]);
 
   if (bridge === "pending") {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-[var(--bg)] p-8 text-white/60">
-        <span
-          className="h-8 w-8 animate-spin rounded-full border-2 border-white/15 border-t-accent"
-          aria-hidden
-        />
-        <p className="text-sm">Подключение к Electron…</p>
+      <div className="launcher-app-root relative flex min-h-screen flex-col bg-[var(--bg)]">
+        <div className="launcher-ambient" aria-hidden>
+          <div className="launcher-ambient__mesh" />
+          <span className="launcher-ambient__orb launcher-ambient__orb--a" />
+          <span className="launcher-ambient__orb launcher-ambient__orb--b" />
+        </div>
+        <div className="relative z-10 flex flex-1 flex-col items-center justify-center gap-5 p-8">
+          <div className="launcher-glass-panel flex flex-col items-center gap-5 px-12 py-10">
+            <span
+              className="h-11 w-11 motion-safe:animate-spin rounded-full border-2 border-[var(--glass-border)] border-t-accent"
+              aria-hidden
+            />
+            <div className="text-center">
+              <p className="text-sm font-semibold text-[color:var(--fg)]">
+                Подключение к Electron…
+              </p>
+              <p className="mt-1 text-xs text-[color:var(--fg-muted)]">
+                Инициализация моста безопасности
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -479,585 +778,423 @@ export default function App() {
   if (bridge === "fail" || !api) {
     const electronShell = isElectronUserAgent();
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[var(--bg)] p-8">
-        <div className="max-w-lg rounded-2xl border border-white/10 bg-[var(--glass)] p-8 shadow-card backdrop-blur-md">
-          {electronShell ? (
-            <>
-              <h1 className="text-xl font-bold text-amber-200/95">
-                Не загрузился preload (мост IPC)
-              </h1>
-              <p className="mt-3 text-[15px] leading-relaxed text-white/55">
-                Окно Electron открыто, но <code className="font-mono text-white/70">window.spektorsLauncher</code>{" "}
-                недоступен. Обычно это из‑за sandbox preload или неверного пути к
-                скрипту. Полностью закройте лаунчер и снова запустите из корня
-                репозитория:
-              </p>
-              <pre className="mt-3 overflow-x-auto rounded-xl border border-white/10 bg-black/40 p-4 font-mono text-sm text-accent">
-                npm run dev:desktop
-              </pre>
-              <p className="mt-3 text-xs text-white/40">
-                В терминале, где запущен dev, должна быть строка{" "}
-                <span className="font-mono text-white/50">[spektors-desktop] preload:</span> с путём к{" "}
-                <span className="font-mono text-white/50">index.mjs</span>. Если её нет или есть ошибка preload —
-                пришлите этот вывод.
-              </p>
-            </>
-          ) : (
-            <>
-              <h1 className="text-xl font-bold text-white">
-                Нужно окно Electron, не браузер
-              </h1>
-              <p className="mt-3 text-[15px] leading-relaxed text-white/55">
-                Страница открыта во внешнем браузере (например Vite на порту 5173).
-                Выбор папки, Docker и .env доступны только в отдельном окне приложения.
-              </p>
-              <p className="mt-4 text-sm font-medium text-white/70">
-                В терминале из корня монорепо:
-              </p>
-              <pre className="mt-2 overflow-x-auto rounded-xl border border-white/10 bg-black/40 p-4 font-mono text-sm text-accent">
-                npm run dev:desktop
-              </pre>
-              <p className="mt-3 text-xs text-white/40">
-                Либо{" "}
-                <code className="rounded bg-white/10 px-1 py-0.5 font-mono text-white/60">
-                  cd apps/spektors-desktop
-                </code>{" "}
-                →{" "}
-                <code className="rounded bg-white/10 px-1 py-0.5 font-mono text-white/60">
-                  npm run dev
-                </code>
-                .
-              </p>
-            </>
-          )}
+      <div className="launcher-app-root relative flex min-h-screen flex-col bg-[var(--bg)]">
+        <div className="launcher-ambient" aria-hidden>
+          <div className="launcher-ambient__mesh" />
+          <span className="launcher-ambient__orb launcher-ambient__orb--b" />
+        </div>
+        <div className="relative z-10 flex flex-1 items-center justify-center p-6 sm:p-8">
+          <div className="launcher-glass-panel max-w-lg p-8 sm:p-10">
+            {electronShell ? (
+              <>
+                <div className="mb-4 inline-flex rounded-full border border-amber-500/35 bg-amber-500/10 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-amber-200/95">
+                  IPC
+                </div>
+                <h1 className="text-xl font-bold tracking-tight text-[color:var(--fg)]">
+                  Не загрузился preload (мост IPC)
+                </h1>
+                <p className="mt-3 text-[15px] leading-relaxed text-[color:var(--fg-muted)]">
+                  Окно Electron открыто, но{" "}
+                  <code className="rounded bg-black/25 px-1.5 py-0.5 font-mono text-sm text-accent">
+                    window.spektorsLauncher
+                  </code>{" "}
+                  недоступен.
+                </p>
+                <pre className="mt-5 overflow-x-auto rounded-xl border border-[var(--glass-border)] bg-black/30 p-4 font-mono text-sm text-accent">
+                  npm run dev:desktop
+                </pre>
+              </>
+            ) : (
+              <>
+                <h1 className="text-xl font-bold tracking-tight text-[color:var(--fg)]">
+                  Нужно окно Electron
+                </h1>
+                <p className="mt-2 text-sm text-[color:var(--fg-muted)]">
+                  Лаунчер работает только внутри десктопного приложения.
+                </p>
+                <pre className="mt-5 overflow-x-auto rounded-xl border border-[var(--glass-border)] bg-black/30 p-4 font-mono text-sm text-accent">
+                  npm run dev:desktop
+                </pre>
+              </>
+            )}
+          </div>
         </div>
       </div>
     );
   }
 
   const customWindowChrome = api.platform !== "darwin";
+  const base = dockerBaseArgs(cfg);
+
+  const setEnvProfile = (p: LauncherEnvProfile) => {
+    setCfg((c) => {
+      const next = { ...c, activeEnv: p };
+      void api.setLauncherConfig(next);
+      return next;
+    });
+  };
+
+  const cardNavId = (id: SidebarCardId): NavId | undefined => {
+    const m: Partial<Record<SidebarCardId, NavId>> = {
+      repo: "repo",
+      services: "services",
+      docker: "docker",
+      api: "api",
+      env: "env",
+    };
+    return m[id];
+  };
+
+  const launcherCardsValue: LauncherCardsValue = {
+    api,
+    root,
+    setRoot,
+    cfg,
+    setCfg,
+    valid,
+    envText,
+    setEnvText,
+    envDirty,
+    setEnvDirty,
+    hasEnvExample,
+    busy,
+    setBusy,
+    reach,
+    probing,
+    recentRoots,
+    gitBranch,
+    gitDirty,
+    branches,
+    branchPick,
+    setBranchPick,
+    alembicHead,
+    toolDocker,
+    toolGit,
+    newSvcLabel,
+    setNewSvcLabel,
+    newSvcUrl,
+    setNewSvcUrl,
+    newServerName,
+    setNewServerName,
+    newServerCwd,
+    setNewServerCwd,
+    newServerCmd,
+    setNewServerCmd,
+    newServerArgs,
+    setNewServerArgs,
+    managedRunning,
+    setManagedRunning,
+    snippetLabel,
+    setSnippetLabel,
+    snippetCmd,
+    setSnippetCmd,
+    snippetArgs,
+    setSnippetArgs,
+    snippetCwd,
+    setSnippetCwd,
+    dockerErr,
+    containers,
+    stats,
+    logTailId,
+    appendEntry,
+    appendFromRun,
+    pushHistory,
+    persistCfg,
+    pickFolder,
+    saveEnv,
+    loadEnv,
+    refreshGit,
+    refreshDocker,
+    refreshAlembic,
+    runProbeAll,
+    runDocker,
+    startTail,
+    stopTail,
+    restartAllConfirm,
+    containerByCompose,
+    setEnvProfile,
+    base,
+    openExpandedCard,
+    applyProjectRoot,
+  };
 
   return (
-    <div
-      className="flex h-full flex-col bg-[var(--bg)]"
-      style={{ backgroundImage: "var(--bg-gradient)" }}
-    >
-      {customWindowChrome ? <WindowChrome api={api} /> : null}
+    <div className="launcher-app-root flex h-full min-h-0 flex-1 flex-col overflow-hidden">
+      <div className="launcher-ambient" aria-hidden>
+        <div className="launcher-ambient__mesh" />
+        <span className="launcher-ambient__orb launcher-ambient__orb--a" />
+        <span className="launcher-ambient__orb launcher-ambient__orb--b" />
+        <span className="launcher-ambient__orb launcher-ambient__orb--c" />
+      </div>
+      <div className="launcher-app-stack flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+        {customWindowChrome ? <WindowChrome api={api} /> : null}
 
-      <div className="flex min-h-0 min-w-0 flex-1">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden lg:flex-row">
+        {/* Sidebar */}
         <aside
-          className="flex w-[220px] shrink-0 flex-col border-r border-[var(--glass-border)] bg-[var(--sidebar-bg)] py-2 pl-2 pr-1.5"
+          className={`launcher-rail-column flex shrink-0 flex-col border-b border-[var(--glass-border)] bg-[var(--sidebar-bg)] py-2 pl-2 pr-1.5 lg:w-[min(228px,100%)] lg:max-w-[40vw] lg:border-b-0 lg:border-r ${
+            sidebarOpen
+              ? "launcher-thin-scroll max-lg:max-h-[min(48dvh,380px)] max-lg:overflow-y-auto"
+              : "max-lg:max-h-11 max-lg:overflow-hidden"
+          }`}
           style={noDragStyle}
         >
-          <p className="mb-2 px-2 text-[10px] font-semibold uppercase tracking-wider text-[color:var(--fg-muted)]">
-            Разделы
-          </p>
-          <nav className="flex flex-col gap-0.5">
-            <NavItem
-              active={activeNav === "repo"}
-              onClick={() => setActiveNav("repo")}
-              icon={<IconFolder />}
-              label="Репозиторий"
-            />
-            <NavItem
-              active={activeNav === "services"}
-              onClick={() => setActiveNav("services")}
-              icon={<IconBrowser />}
-              label="Сервисы"
-            />
-            <NavItem
-              active={activeNav === "docker"}
-              onClick={() => setActiveNav("docker")}
-              icon={<IconDocker />}
-              label="Docker"
-            />
-            <NavItem
-              active={activeNav === "api"}
-              onClick={() => setActiveNav("api")}
-              icon={<IconApi />}
-              label="API и БД"
-            />
-            <NavItem
-              active={activeNav === "env"}
-              onClick={() => setActiveNav("env")}
-              icon={<IconEnv />}
-              label=".env"
-            />
-            <NavItem
-              active={activeNav === "log"}
-              onClick={() => setActiveNav("log")}
-              icon={<IconLog />}
-              label="Лог"
-            />
-          </nav>
-
-          <div className="mt-auto flex flex-col gap-2 border-t border-[var(--glass-border)] pt-3">
-            <div
-              className="flex items-center gap-2 rounded-md border px-2 py-1.5 text-[11px]"
-              style={{
-                borderColor: "var(--glass-border)",
-                color: "var(--fg-muted)",
-              }}
-              title="Локальный API"
-            >
-              <span
-                className={`h-1.5 w-1.5 shrink-0 rounded-full ${
-                  apiHealthOk === true
-                    ? "bg-emerald-400"
-                    : apiHealthOk === false
-                      ? "bg-red-400/80"
-                      : "bg-[var(--fg-muted)] opacity-40"
-                }`}
-              />
-              API :8000
-            </div>
+          <div className="flex items-center justify-between gap-1 px-1 lg:hidden">
             <button
               type="button"
-              onClick={() => void api.openExternal("http://localhost:3000")}
-              className="w-full rounded-md border px-2 py-1.5 text-left text-xs font-medium transition hover:border-accent/40"
-              style={{
-                borderColor: "var(--glass-border)",
-                color: "var(--fg-muted)",
-              }}
+              className="rounded-xl border border-[var(--glass-border)] bg-[var(--panel-fill)] p-2 text-[color:var(--fg-muted)] transition hover:border-accent/35 hover:text-[color:var(--fg)]"
+              onClick={() => setSidebarOpen((o) => !o)}
+              aria-label="Меню"
             >
-              Открыть сайт
+              <IconMenu />
             </button>
-            <div className="flex items-center justify-between gap-1">
-              <ThemeToggle
-                className="flex h-8 w-8 items-center justify-center rounded-md border border-[color:var(--glass-border)] bg-[var(--glass)] text-base shadow-none transition hover:border-accent/40 hover:bg-[var(--glass-highlight)]"
-                labels={{
-                  toggle: "Тема",
-                  activateLight: "Светлая тема",
-                  activateDark: "Тёмная тема",
-                }}
+            <span className="text-[10px] font-semibold uppercase tracking-widest text-[color:var(--fg-muted)]">
+              Spektors
+            </span>
+          </div>
+          <div className={sidebarOpen ? "flex flex-col" : "hidden lg:flex"}>
+            <p className="mb-2 px-2 text-[9px] font-bold uppercase tracking-[0.2em] text-[color:var(--fg-muted)] opacity-90">
+              Разделы
+            </p>
+            <nav className="launcher-thin-scroll flex max-lg:-mx-0.5 max-lg:flex-nowrap max-lg:gap-0.5 max-lg:overflow-x-auto max-lg:pb-1 lg:flex-col lg:flex-wrap lg:gap-0.5">
+              <NavItem
+                active={activeNav === "log"}
+                onClick={() => setActiveNav("log")}
+                icon={<IconLog />}
+                label="Логи"
               />
+              <NavItem
+                active={activeNav === "repo"}
+                onClick={() => setActiveNav("repo")}
+                icon={<IconFolder />}
+                label="Репозиторий"
+              />
+              <NavItem
+                active={activeNav === "services"}
+                onClick={() => setActiveNav("services")}
+                icon={<IconBrowser />}
+                label="Сервисы"
+              />
+              <NavItem
+                active={activeNav === "docker"}
+                onClick={() => setActiveNav("docker")}
+                icon={<IconDocker />}
+                label="Docker"
+              />
+              <NavItem
+                active={activeNav === "api"}
+                onClick={() => setActiveNav("api")}
+                icon={<IconApi />}
+                label="API и БД"
+              />
+              <NavItem
+                active={activeNav === "env"}
+                onClick={() => setActiveNav("env")}
+                icon={<IconEnv />}
+                label=".env"
+              />
+            </nav>
+            <div className="mt-3 flex flex-col gap-2 border-t border-[var(--glass-border)]/80 pt-3">
+              <p className="px-2 text-[9px] font-bold uppercase tracking-[0.18em] text-[color:var(--fg-muted)]">
+                Быстро
+              </p>
+              <button
+                type="button"
+                disabled={!valid?.ok || !toolDocker}
+                title="docker compose up -d в корне проекта"
+                onClick={() => void startAllComposeStack()}
+                className="inline-flex items-center gap-2 rounded-xl border border-accent/40 bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] px-2.5 py-2.5 text-left text-[11px] font-semibold text-accent shadow-[0_0_20px_-10px_color-mix(in_srgb,var(--accent)_55%,transparent)] transition enabled:hover:border-accent/55 enabled:hover:bg-[color-mix(in_srgb,var(--accent)_20%,transparent)] disabled:opacity-40"
+              >
+                <IconPlay /> Запустить весь стек Docker
+              </button>
+              <button
+                type="button"
+                onClick={clearLog}
+                className="rounded-xl border border-[var(--glass-border)] bg-[var(--panel-fill)] px-2.5 py-2 text-left text-[11px] font-medium text-[color:var(--fg-muted)] transition hover:border-accent/30 hover:text-[color:var(--fg)]"
+              >
+                Очистить логи
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveNav("env");
+                  setSidebarOpen(true);
+                }}
+                className="rounded-xl border border-[var(--glass-border)] bg-[var(--panel-fill)] px-2.5 py-2 text-left text-[11px] font-medium text-[color:var(--fg-muted)] transition hover:border-accent/30 hover:text-[color:var(--fg)]"
+              >
+                Открыть .env
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setScratchpadOpen(true);
+                  setSidebarOpen(true);
+                }}
+                className="inline-flex items-center gap-2 rounded-xl border border-[var(--glass-border)] bg-[var(--panel-fill)] px-2.5 py-2 text-left text-[11px] font-medium text-[color:var(--fg-muted)] transition hover:border-accent/30 hover:text-[color:var(--fg)]"
+              >
+                <IconNotes /> Заметки и картинки
+              </button>
+              <button
+                type="button"
+                disabled={!valid?.ok}
+                onClick={() => {
+                  void runProbeAll();
+                  void refreshDocker();
+                }}
+                className="inline-flex items-center gap-2 rounded-xl border border-[var(--glass-border)] bg-[var(--panel-fill)] px-2.5 py-2 text-left text-[11px] font-medium text-[color:var(--fg-muted)] transition enabled:hover:border-accent/30 enabled:hover:text-[color:var(--fg)] disabled:opacity-40"
+              >
+                <IconRefresh /> Обновить статусы
+              </button>
+            </div>
+            <div className="mt-auto flex flex-col gap-2 border-t border-[var(--glass-border)]/80 pt-3">
+              <p className="px-2 text-[9px] font-bold uppercase tracking-[0.18em] text-[color:var(--fg-muted)]">
+                Профиль
+              </p>
               <ProfileMenu
                 key={profileMenuKey}
                 presentation="modal"
+                triggerLayout="sidebar"
+                className="w-full"
                 onAfterSave={(p) => void persistProfileToDisk(p)}
               />
+              <div className="flex items-center gap-2.5 rounded-xl border border-[var(--glass-border)] bg-[color-mix(in_srgb,var(--panel-fill)_80%,transparent)] px-2.5 py-2 text-[11px] font-medium text-[color:var(--fg-muted)]">
+                <span
+                  className={`relative flex h-2 w-2 shrink-0 rounded-full ${apiHealthOk === true ? "bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.65)]" : apiHealthOk === false ? "bg-red-400/90" : "bg-[var(--fg-muted)] opacity-45"}`}
+                />
+                <span className="tabular-nums">API :8000</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <ThemeToggle
+                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-[color:var(--glass-border)] bg-[var(--panel-fill)] text-base shadow-none transition hover:border-accent/40 hover:bg-[var(--glass-highlight)]"
+                  labels={{
+                    toggle: "Тема",
+                    activateLight: "Светлая тема",
+                    activateDark: "Тёмная тема",
+                  }}
+                />
+              </div>
             </div>
           </div>
         </aside>
 
-        <main className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain p-4">
-          <div className="mx-auto max-w-3xl space-y-4 pb-6">
-            {activeNav === "repo" ? (
-              <Panel
-                title="Репозиторий"
-                description="Корень монорепо: package.json, docker-compose, apps/api."
-                icon={<IconFolder />}
-              >
-          <div className="flex flex-wrap gap-2">
-            <input
-              readOnly
-              value={root}
-              placeholder="Корень монорепо Spektors…"
-              className="min-w-[220px] flex-1 rounded-xl border px-3 py-2.5 font-mono text-xs outline-none transition focus:border-accent/50 focus:ring-2 focus:ring-accent/20"
-              style={{
-                borderColor: "var(--glass-border)",
-                background: "var(--glass-highlight)",
-                color: "var(--fg)",
+        <LauncherCardsProvider value={launcherCardsValue}>
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden lg:flex-row lg:overflow-hidden">
+          <section
+            ref={(el) => {
+              sectionRefs.current.logPanel = el;
+            }}
+            className="flex min-h-[min(180px,32dvh)] min-w-0 flex-1 flex-col overflow-hidden p-2 sm:p-3 lg:min-h-0"
+          >
+            <LauncherPanel
+              fill
+              elevated
+              title="Логи команд"
+              description="Вывод docker, alembic, потоков и команд. Фильтры и экспорт."
+              icon={<IconLog />}
+            >
+              <CommandLog
+                api={api}
+                entries={logEntries}
+                onClear={clearLog}
+                onAppend={appendEntry}
+                sourceOptions={sourceOptions}
+                probeTicking={probing}
+              />
+            </LauncherPanel>
+            <PinnedCardDropZone
+              visible={draggingCardId !== null}
+              onPin={(cardId) => {
+                if (!isSidebarCardId(cardId)) return;
+                setCfg((c) => {
+                  const next = { ...c, pinnedSidebarCardId: cardId };
+                  void api.setLauncherConfig(next);
+                  return next;
+                });
               }}
+              onDragEnd={() => setDraggingCardId(null)}
             />
-            <button
-              type="button"
-              onClick={() => void pickFolder()}
-              className="rounded-xl bg-accent/20 px-4 py-2.5 text-sm font-semibold text-accent transition hover:bg-accent/30"
-            >
-              Выбрать папку
-            </button>
-            <button
-              type="button"
-              disabled={!root.trim()}
-              onClick={() => void openRepoFolder()}
-              className="rounded-xl border px-4 py-2.5 text-sm font-medium transition hover:border-accent/35 disabled:opacity-35"
-              style={{
-                borderColor: "var(--glass-border)",
-                color: "var(--fg-muted)",
-              }}
-            >
-              В проводнике
-            </button>
-            <button
-              type="button"
-              disabled={!root.trim()}
-              onClick={() => void copyRootPath()}
-              className="rounded-xl border px-4 py-2.5 text-sm font-medium transition hover:border-accent/35 disabled:opacity-35"
-              style={{
-                borderColor: "var(--glass-border)",
-                color: "var(--fg-muted)",
-              }}
-            >
-              Копировать путь
-            </button>
-          </div>
-          {recentRoots.length > 0 ? (
-            <div className="mt-3">
-              <p className="mb-1.5 text-[10px] font-medium uppercase tracking-wide text-[color:var(--fg-muted)]">
-                Недавние
-              </p>
-              <div className="flex flex-wrap gap-1.5">
-                {recentRoots.map((r) => (
+            {cfg.pinnedSidebarCardId &&
+            isSidebarCardId(cfg.pinnedSidebarCardId) ? (
+              <div className="mt-2 min-h-0 shrink-0 space-y-1">
+                <div className="flex justify-end">
                   <button
-                    key={r}
                     type="button"
-                    onClick={() => setRoot(r)}
-                    className="max-w-full truncate rounded-lg border px-2 py-1 text-left font-mono text-[10px] transition hover:border-accent/40"
-                    style={{
-                      borderColor: "var(--glass-border)",
-                      color: "var(--fg-muted)",
+                    className="rounded-lg border border-[var(--glass-border)] bg-[var(--panel-fill)] px-2.5 py-1.5 text-[10px] font-medium text-[color:var(--fg-muted)] transition hover:border-accent/35 hover:text-[color:var(--fg)]"
+                    onClick={() => {
+                      setCfg((c) => {
+                        const next = { ...c, pinnedSidebarCardId: null };
+                        void api.setLauncherConfig(next);
+                        return next;
+                      });
                     }}
-                    title={r}
                   >
-                    {r.replace(/\\/g, "/").split("/").slice(-2).join("/")}
+                    Вернуть в боковую панель
                   </button>
-                ))}
+                </div>
+                <SidebarCardShell
+                  cardId={cfg.pinnedSidebarCardId}
+                  draggingId={draggingCardId}
+                  onDragStart={setDraggingCardId}
+                  onDragEnd={() => setDraggingCardId(null)}
+                  onDropReorder={onDropReorder}
+                >
+                  <SidebarCardBody id={cfg.pinnedSidebarCardId} />
+                </SidebarCardShell>
+              </div>
+            ) : null}
+          </section>
+
+          <aside className="launcher-dock-column flex min-h-0 w-full flex-none flex-col border-t border-[var(--glass-border)] bg-[color-mix(in_srgb,var(--bg)_88%,transparent)] max-lg:max-h-[min(46dvh,480px)] lg:h-full lg:w-[min(384px,44vw)] lg:min-w-0 lg:shrink-0 lg:self-stretch lg:border-l lg:border-t-0">
+            <div className="launcher-sidebar-scroll min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain p-2 sm:p-3">
+              <div className="flex flex-col gap-3">
+                {sidebarOrder
+                  .filter((id) => cfg.pinnedSidebarCardId !== id)
+                  .map((cardId) => (
+                    <SidebarCardShell
+                      key={cardId}
+                      cardId={cardId}
+                      draggingId={draggingCardId}
+                      onDragStart={setDraggingCardId}
+                      onDragEnd={() => setDraggingCardId(null)}
+                      onDropReorder={onDropReorder}
+                      sectionRef={(el) => {
+                        const nav = cardNavId(cardId as SidebarCardId);
+                        if (nav) sectionRefs.current[nav] = el;
+                        if (cardId === "customServers")
+                          sectionRefs.current.customServers = el;
+                        if (cardId === "snippets")
+                          sectionRefs.current.snippets = el;
+                      }}
+                    >
+                      <SidebarCardBody id={cardId as SidebarCardId} />
+                    </SidebarCardShell>
+                  ))}
               </div>
             </div>
-          ) : null}
-          {valid && (
-            <p
-              className={`mt-3 text-sm font-medium ${valid.ok ? "text-emerald-500 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"}`}
-            >
-              {valid.ok
-                ? "Корень распознан (package.json, docker-compose, apps/api)."
-                : valid.reason}
-            </p>
-          )}
-              </Panel>
-            ) : activeNav === "services" ? (
-              <Panel
-                title="Локальные сервисы"
-                description="Проверка HTTP каждые ~12 с. Зелёный индикатор — ответ получен."
-                icon={<IconBrowser />}
-                actions={
-                  <button
-                    type="button"
-                    disabled={!valid?.ok || probing}
-                    onClick={() => void runProbeAll()}
-                    className="rounded-md border px-2.5 py-1 text-[11px] font-medium transition hover:border-accent/40 disabled:opacity-40"
-                    style={{
-                      borderColor: "var(--glass-border)",
-                      color: "var(--fg-muted)",
-                    }}
-                  >
-                    {probing ? "Проверка…" : "Сейчас"}
-                  </button>
-                }
+            <div className="launcher-save-strip shrink-0 border-t border-[var(--glass-border)] px-2 py-2.5 sm:px-3">
+              <button
+                type="button"
+                onClick={() => void persistCfg()}
+                className="launcher-primary-cta w-full rounded-xl py-2.5 text-xs font-bold tracking-wide text-[color:var(--fg)]"
               >
-                <div className="flex flex-wrap gap-2">
-                  {LINKS.map(({ label, url }) => {
-                    const up = reach[url];
-                    return (
-                      <button
-                        key={url}
-                        type="button"
-                        disabled={!valid?.ok}
-                        onClick={() => void api.openExternal(url)}
-                        className="flex items-center gap-2 rounded-md border px-3 py-2 text-left text-xs transition hover:border-accent/40 disabled:opacity-40"
-                        style={{
-                          borderColor: "var(--glass-border)",
-                          background: "var(--glass-highlight)",
-                          color: "var(--fg)",
-                        }}
-                      >
-                        <span
-                          className={`h-2 w-2 shrink-0 rounded-full ${
-                            up === true
-                              ? "bg-emerald-400"
-                              : up === false
-                                ? "bg-[var(--fg-muted)] opacity-40"
-                                : "animate-pulse bg-[var(--fg-muted)] opacity-30"
-                          }`}
-                          title={
-                            up === true
-                              ? "Онлайн"
-                              : up === false
-                                ? "Офлайн"
-                                : "…"
-                          }
-                        />
-                        <span className="font-medium">{label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </Panel>
-            ) : activeNav === "docker" ? (
-              <Panel
-                title="Docker Compose"
-                description="Первый полный подъём может занять время (Ollama, сборка API)."
-                icon={<IconDocker />}
-              >
-                <div className="flex flex-wrap gap-2">
-                  <ActionBtn
-                    disabled={!valid?.ok || busy !== null}
-                    loading={busy === "postgres"}
-                    onClick={() =>
-                      void runDocker("postgres", [
-                        "compose",
-                        "up",
-                        "-d",
-                        "postgres",
-                      ])
-                    }
-                    label="Postgres"
-                  />
-                  <ActionBtn
-                    disabled={!valid?.ok || busy !== null}
-                    loading={busy === "stack"}
-                    onClick={() =>
-                      void runDocker("stack", ["compose", "up", "-d"])
-                    }
-                    label="Весь стек"
-                  />
-                  <ActionBtn
-                    disabled={!valid?.ok || busy !== null}
-                    loading={busy === "down"}
-                    onClick={() => void runDocker("down", ["compose", "down"])}
-                    label="compose down"
-                  />
-                </div>
-              </Panel>
-            ) : activeNav === "api" ? (
-              <Panel
-                title="API и база"
-                description="Таблицы — через psql или GUI; строка compose по умолчанию в подсказке psql."
-                icon={<IconApi />}
-              >
-                <div className="flex flex-wrap gap-2">
-                  <ActionBtn
-                    disabled={!valid?.ok || busy !== null}
-                    onClick={() => void startApiBackground()}
-                    label="API локально (uvicorn)"
-                  />
-                  <ActionBtn
-                    disabled={!valid?.ok || busy !== null}
-                    loading={busy === "alembic"}
-                    onClick={() => void runAlembic()}
-                    label="Alembic upgrade"
-                  />
-                  <ActionBtn
-                    disabled={!valid?.ok}
-                    onClick={() => void copyPsql()}
-                    label="Копировать psql"
-                  />
-                </div>
-              </Panel>
-            ) : activeNav === "env" ? (
-              <Panel
-                title=".env в корне репо"
-                description="Редактирование файла окружения выбранного репозитория."
-                icon={<IconEnv />}
-                actions={
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      disabled={!valid?.ok || !hasEnvExample}
-                      onClick={() => void copyFromExample()}
-                      className="rounded-md border px-2.5 py-1 text-xs transition hover:bg-black/5 disabled:opacity-40 dark:hover:bg-white/5"
-                      style={{
-                        borderColor: "var(--glass-border)",
-                        color: "var(--fg-muted)",
-                      }}
-                    >
-                      Из .env.example
-                    </button>
-                    <button
-                      type="button"
-                      disabled={!valid?.ok || !envDirty}
-                      onClick={() => void saveEnv()}
-                      className="rounded-md bg-accent/25 px-3 py-1 text-xs font-semibold text-accent transition hover:bg-accent/35 disabled:opacity-40"
-                    >
-                      Сохранить
-                    </button>
-                  </div>
-                }
-              >
-                <textarea
-                  value={envText}
-                  disabled={!valid?.ok}
-                  onChange={(e) => {
-                    setEnvText(e.target.value);
-                    setEnvDirty(true);
-                  }}
-                  spellCheck={false}
-                  className="h-52 w-full resize-y rounded-md border p-3 font-mono text-xs leading-relaxed outline-none transition focus:border-accent/50 focus:ring-1 focus:ring-accent/30"
-                  style={{
-                    borderColor: "var(--glass-border)",
-                    background: "var(--glass-highlight)",
-                    color: "var(--fg)",
-                  }}
-                  placeholder="# после выбора корня появится содержимое .env"
-                />
-              </Panel>
-            ) : activeNav === "log" ? (
-              <Panel
-                title="Лог команд"
-                description="Вывод docker и alembic."
-                icon={<IconLog />}
-                actions={
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      disabled={log.length === 0}
-                      onClick={clearLog}
-                      className="rounded-md border px-2.5 py-1 text-xs transition hover:bg-black/5 disabled:opacity-40 dark:hover:bg-white/5"
-                      style={{
-                        borderColor: "var(--glass-border)",
-                        color: "var(--fg-muted)",
-                      }}
-                    >
-                      Очистить
-                    </button>
-                    <button
-                      type="button"
-                      disabled={log.length === 0}
-                      onClick={() => void copyLog()}
-                      className="rounded-md border px-2.5 py-1 text-xs transition hover:bg-black/5 disabled:opacity-40 dark:hover:bg-white/5"
-                      style={{
-                        borderColor: "var(--glass-border)",
-                        color: "var(--fg-muted)",
-                      }}
-                    >
-                      Копировать
-                    </button>
-                  </div>
-                }
-              >
-                <pre
-                  ref={logContainerRef}
-                  className="max-h-[min(420px,55vh)] overflow-auto rounded-md border p-3 font-mono text-[11px] leading-relaxed"
-                  style={{
-                    borderColor: "var(--glass-border)",
-                    background: "var(--glass-highlight)",
-                    color: "var(--fg-muted)",
-                  }}
-                >
-                  {log.length === 0
-                    ? "Вывод docker / alembic появится здесь."
-                    : log.join("\n\n—\n\n")}
-                  <div ref={logEndRef} />
-                </pre>
-              </Panel>
-            ) : null}
-          </div>
-        </main>
+                Сохранить настройки лаунчера
+              </button>
+            </div>
+          </aside>
+        </div>
+        {expandedCardId ? (
+          <LauncherExpandedCardModal
+            cardId={expandedCardId}
+            onClose={() => setExpandedCardId(null)}
+          />
+        ) : null}
+        </LauncherCardsProvider>
+        </div>
+        <LauncherScratchpadModal
+          open={scratchpadOpen}
+          onClose={() => setScratchpadOpen(false)}
+        />
       </div>
     </div>
-  );
-}
-
-function ActionBtn(props: {
-  disabled?: boolean;
-  loading?: boolean;
-  onClick: () => void;
-  label: string;
-}) {
-  const showSpinner = props.loading;
-  return (
-    <button
-      type="button"
-      disabled={props.disabled}
-      onClick={props.onClick}
-      className="inline-flex min-h-[38px] items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm font-medium transition hover:border-accent/40 disabled:opacity-40"
-      style={{
-        borderColor: "var(--glass-border)",
-        background: "var(--glass-highlight)",
-        color: "var(--fg)",
-      }}
-    >
-      {showSpinner ? (
-        <span
-          className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-t-accent border-[var(--glass-border)]"
-          aria-hidden
-        />
-      ) : null}
-      {props.label}
-    </button>
-  );
-}
-
-function IconFolder() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function IconBrowser() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <rect
-        x="3"
-        y="4"
-        width="18"
-        height="16"
-        rx="2"
-        stroke="currentColor"
-        strokeWidth="1.6"
-      />
-      <path d="M3 8h18" stroke="currentColor" strokeWidth="1.6" />
-      <circle cx="6" cy="6" r="0.9" fill="currentColor" />
-    </svg>
-  );
-}
-
-function IconDocker() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M4 10h2v2H4v-2zm4 0h2v2H8v-2zm4 0h2v2h-2v-2zm-8 4h2v2H4v-2zm4 0h2v2H8v-2zm4 0h2v2h-2v-2zm4-4h2v2h-2v-2zm0 4h2v2h-2v-2zM6 18h12v2H6v-2z"
-        fill="currentColor"
-      />
-    </svg>
-  );
-}
-
-function IconApi() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M8 16l-4-4 4-4M16 8l4 4-4 4M13 5l-2 14"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function IconEnv() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M6 4h8l4 4v12a1 1 0 01-1 1H6a1 1 0 01-1-1V5a1 1 0 011-1z"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinejoin="round"
-      />
-      <path d="M14 4v4h4" stroke="currentColor" strokeWidth="1.6" />
-    </svg>
-  );
-}
-
-function IconLog() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M6 4h12a1 1 0 011 1v14l-3-2-3 2-3-2-3 2V5a1 1 0 011-1z"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinejoin="round"
-      />
-    </svg>
   );
 }

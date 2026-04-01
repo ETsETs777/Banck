@@ -1,6 +1,7 @@
 """Репозиторий чата: сессии, треды, сообщения (PostgreSQL)."""
 from __future__ import annotations
 
+import json
 import uuid
 from typing import Any
 
@@ -135,10 +136,14 @@ async def list_threads_inbox(
             SELECT t.id AS thread_id, t.session_id, s.app_id,
                    lm.content AS last_preview,
                    lm.created_at AS updated_at,
-                   (SELECT COUNT(*)::int FROM chat_message cm WHERE cm.thread_id = t.id) AS message_count
+                   (SELECT COUNT(*)::int FROM chat_message cm WHERE cm.thread_id = t.id) AS message_count,
+                   COALESCE(adm.workflow_status, 'queued') AS workflow_status,
+                   adm.assignee_label AS assignee_label,
+                   COALESCE(adm.tags, '[]'::jsonb) AS tags
             FROM chat_thread t
             JOIN chat_session s ON s.id = t.session_id
             LEFT JOIN last_msg lm ON lm.thread_id = t.id
+            LEFT JOIN admin_thread_meta adm ON adm.thread_id = t.id
             WHERE ($1::text IS NULL OR s.app_id = $1)
             ORDER BY lm.created_at DESC NULLS LAST, t.id DESC
             LIMIT $2 OFFSET $3
@@ -150,6 +155,13 @@ async def list_threads_inbox(
     out: list[dict[str, Any]] = []
     for r in rows:
         ts = r["updated_at"]
+        raw_tags = r["tags"]
+        if isinstance(raw_tags, str):
+            try:
+                raw_tags = json.loads(raw_tags)
+            except json.JSONDecodeError:
+                raw_tags = []
+        tag_list = [str(x) for x in raw_tags] if isinstance(raw_tags, list) else []
         out.append(
             {
                 "thread_id": str(r["thread_id"]),
@@ -158,6 +170,9 @@ async def list_threads_inbox(
                 "last_preview": r["last_preview"],
                 "updated_at": ts.isoformat() if ts else None,
                 "message_count": int(r["message_count"] or 0),
+                "workflow_status": str(r["workflow_status"] or "queued"),
+                "assignee_label": r["assignee_label"],
+                "tags": tag_list,
             }
         )
     return out

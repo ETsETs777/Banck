@@ -1,5 +1,6 @@
 "use client";
 
+import { LOCALE_KEY } from "@/lib/admin-prefs";
 import { Link, routing, usePathname } from "@/i18n/routing";
 import { useLocale, useTranslations } from "next-intl";
 import { Fragment } from "react";
@@ -30,6 +31,13 @@ export function AdminLocaleSwitcher() {
                 ? "font-semibold text-accent"
                 : "hover:text-foreground"
             }
+            onClick={() => {
+              try {
+                window.localStorage.setItem(LOCALE_KEY, loc);
+              } catch {
+                /* ignore */
+              }
+            }}
           >
             {t(loc)}
           </Link>

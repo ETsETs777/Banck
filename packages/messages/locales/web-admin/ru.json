@@ -11,7 +11,64 @@
   "nav": {
     "overview": "Обзор",
     "inbox": "Очередь чатов",
-    "swagger": "Swagger API"
+    "swagger": "Swagger API",
+    "productName": "Панель оператора",
+    "mainNav": "Основная навигация",
+    "history": "История",
+    "apiDocs": "Документация API (встроено)",
+    "swaggerNewTab": "Swagger (новая вкладка)",
+    "settings": "Настройки",
+    "supervisor": "Супервизор",
+    "integrations": "Интеграции",
+    "menuOpen": "Открыть меню",
+    "menuClose": "Закрыть меню"
+  },
+  "operator": {
+    "label": "Ваш статус",
+    "localHint": "Только в этом браузере.",
+    "online": "Онлайн",
+    "offline": "Офлайн",
+    "dnd": "Не беспокоить",
+    "current": "Отображается как"
+  },
+  "docs": {
+    "title": "Документация API",
+    "hint": "Встроенный Swagger UI с сервера API. Если пусто — проверьте NEXT_PUBLIC_API_URL и CORS."
+  },
+  "history": {
+    "title": "Недавние треды",
+    "empty": "Откройте тред из очереди — он появится здесь.",
+    "openInbox": "К очереди",
+    "openedAt": "Открыт"
+  },
+  "settings": {
+    "title": "Настройки",
+    "intro": "Настройки хранятся только в этом браузере.",
+    "operatorName": "Отображаемое имя (для аудита)",
+    "operatorNameHint": "Используется при обновлении метаданных треда.",
+    "pollInterval": "Интервал обновления очереди (сек)",
+    "soundNewThread": "Звук при новых тредах (вкладка в фоне)",
+    "save": "Сохранить",
+    "checkApi": "Проверить API",
+    "checking": "Проверка…",
+    "apiOk": "API отвечает",
+    "apiFail": "Проверка API не удалась"
+  },
+  "supervisor": {
+    "title": "Супервизор",
+    "intro": "Журнал аудита требует INTERNAL_ADMIN_TOKEN на сервере Next.",
+    "auditTitle": "Последние события аудита",
+    "auditEmpty": "Пока нет записей.",
+    "reportsTitle": "Отчёты",
+    "reportsBody": "Статистика операторов и графики очереди появятся после API отчётности.",
+    "action": "Действие",
+    "actor": "Кто",
+    "thread": "Тред",
+    "time": "Время"
+  },
+  "integrations": {
+    "title": "Интеграции",
+    "body": "CRM, перевод и тикеты — по приоритету продукта. Service Worker и офлайн-черновики вынесены в опциональные задачи."
   },
   "home": {
     "badge": "web-admin · порт 3002",
@@ -19,8 +76,10 @@
     "intro": "Ответы оператора уходят через POST /internal/admin/v1/sessions/…/threads/…/reply с Bearer INTERNAL_ADMIN_TOKEN на API (если задан). Подробности в docs/FRONTEND_TZ.md.",
     "inboxCardTitle": "Очередь чатов",
     "inboxCardDesc": "Список тредов и ответ оператора",
-    "threadsCardTitle": "Треды в БД",
-    "threadsCardDesc": "Сортировка по последнему сообщению; фильтр по app_id"
+    "threadListCardTitle": "Список тредов",
+    "threadListCardDesc": "Открыть очередь с прокруткой к списку",
+    "apiDocCardTitle": "Документация API",
+    "apiDocCardDesc": "OpenAPI / Swagger на сервере API"
   },
   "inbox": {
     "title": "Очередь чатов",
@@ -49,7 +108,35 @@
     "directSubmit": "Отправить как оператор",
     "sending": "Отправка…",
     "successPrefix": "Отправлено",
-    "successHint": "Клиент увидит ответ после синхронизации чата."
+    "successHint": "Клиент увидит ответ после синхронизации чата.",
+    "bffTab": "BFF (сервер)",
+    "directTab": "Прямой API",
+    "composeTitle": "Ответ",
+    "copySession": "Копировать session_id",
+    "copyThread": "Копировать thread_id",
+    "copiedToast": "Скопировано",
+    "loadMore": "Ещё",
+    "loadingMore": "Загрузка…",
+    "endOfList": "Больше нет тредов",
+    "statusLabel": "Статус",
+    "searchPlaceholder": "Поиск по превью или ID…",
+    "collapseList": "Скрыть список тредов",
+    "expandList": "Показать список тредов",
+    "dialogTitle": "Диалог",
+    "messagesLoadError": "Не удалось загрузить сообщения",
+    "noMessages": "Нет сообщений",
+    "clientHeader": "Клиент",
+    "keyboardHint": "Ctrl+Enter — отправить · Esc — очистить ответ",
+    "takeThread": "Взять",
+    "returnQueue": "Вернуть в очередь",
+    "workflowQueued": "В очереди",
+    "workflowAssigned": "В работе",
+    "workflowClosed": "Закрыт",
+    "internalNote": "Внутренняя заметка (только операторы)",
+    "saveNote": "Сохранить заметку",
+    "templatesLabel": "Быстрые ответы",
+    "urgentWait": "Долгое ожидание",
+    "metaUpdateError": "Не удалось обновить метаданные треда"
   },
   "locale": {
     "label": "Язык",

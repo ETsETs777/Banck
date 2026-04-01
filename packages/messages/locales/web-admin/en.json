@@ -11,7 +11,64 @@
   "nav": {
     "overview": "Overview",
     "inbox": "Chat queue",
-    "swagger": "Swagger API"
+    "swagger": "Swagger API",
+    "productName": "Operator console",
+    "mainNav": "Main navigation",
+    "history": "History",
+    "apiDocs": "API docs (embedded)",
+    "swaggerNewTab": "Swagger (new tab)",
+    "settings": "Settings",
+    "supervisor": "Supervisor",
+    "integrations": "Integrations",
+    "menuOpen": "Open menu",
+    "menuClose": "Close menu"
+  },
+  "operator": {
+    "label": "Your status",
+    "localHint": "Saved only in this browser.",
+    "online": "Online",
+    "offline": "Offline",
+    "dnd": "Do not disturb",
+    "current": "Showing as"
+  },
+  "docs": {
+    "title": "API documentation",
+    "hint": "Embedded Swagger UI from the API server. If the frame is empty, check NEXT_PUBLIC_API_URL and CORS."
+  },
+  "history": {
+    "title": "Recent threads",
+    "empty": "Open a thread from the queue to add it here.",
+    "openInbox": "Go to queue",
+    "openedAt": "Last opened"
+  },
+  "settings": {
+    "title": "Settings",
+    "intro": "Preferences are stored in this browser only.",
+    "operatorName": "Display name (for audit log)",
+    "operatorNameHint": "Used when updating thread metadata.",
+    "pollInterval": "Queue refresh interval (seconds)",
+    "soundNewThread": "Sound when new threads appear (tab in background)",
+    "save": "Save",
+    "checkApi": "Check API",
+    "checking": "Checking…",
+    "apiOk": "API responded OK",
+    "apiFail": "API check failed"
+  },
+  "supervisor": {
+    "title": "Supervisor",
+    "intro": "Audit log and future reporting require INTERNAL_ADMIN_TOKEN on the Next server.",
+    "auditTitle": "Recent audit events",
+    "auditEmpty": "No events yet.",
+    "reportsTitle": "Reports",
+    "reportsBody": "Operator stats and queue charts will appear here after reporting APIs are added.",
+    "action": "Action",
+    "actor": "Actor",
+    "thread": "Thread",
+    "time": "Time"
+  },
+  "integrations": {
+    "title": "Integrations",
+    "body": "CRM, translation, and ticket creation can be wired here when product priorities are set. Service Worker and offline drafts are tracked as optional follow-ups."
   },
   "home": {
     "badge": "web-admin · port 3002",
@@ -19,8 +76,10 @@
     "intro": "Operator replies use POST /internal/admin/v1/sessions/…/threads/…/reply with Bearer INTERNAL_ADMIN_TOKEN on the API (when set). See docs/FRONTEND_TZ.md.",
     "inboxCardTitle": "Chat queue",
     "inboxCardDesc": "Thread list and operator reply",
-    "threadsCardTitle": "Threads in DB",
-    "threadsCardDesc": "Sorted by last message; optional app_id filter"
+    "threadListCardTitle": "Thread list",
+    "threadListCardDesc": "Open the inbox scrolled to threads",
+    "apiDocCardTitle": "API documentation",
+    "apiDocCardDesc": "OpenAPI / Swagger on the API server"
   },
   "inbox": {
     "title": "Chat queue",
@@ -49,7 +108,35 @@
     "directSubmit": "Send as operator",
     "sending": "Sending…",
     "successPrefix": "Sent",
-    "successHint": "The client will see the reply after the chat syncs."
+    "successHint": "The client will see the reply after the chat syncs.",
+    "bffTab": "BFF (server)",
+    "directTab": "Direct API",
+    "composeTitle": "Reply",
+    "copySession": "Copy session_id",
+    "copyThread": "Copy thread_id",
+    "copiedToast": "Copied",
+    "loadMore": "Load more",
+    "loadingMore": "Loading…",
+    "endOfList": "No more threads",
+    "statusLabel": "Status",
+    "searchPlaceholder": "Search preview or IDs…",
+    "collapseList": "Hide thread list",
+    "expandList": "Show thread list",
+    "dialogTitle": "Conversation",
+    "messagesLoadError": "Could not load messages",
+    "noMessages": "No messages",
+    "clientHeader": "Client",
+    "keyboardHint": "Ctrl+Enter send · Esc clear reply",
+    "takeThread": "Take",
+    "returnQueue": "Return to queue",
+    "workflowQueued": "Queued",
+    "workflowAssigned": "In progress",
+    "workflowClosed": "Closed",
+    "internalNote": "Internal note (operators only)",
+    "saveNote": "Save note",
+    "templatesLabel": "Quick replies",
+    "urgentWait": "Long wait",
+    "metaUpdateError": "Could not update thread metadata"
   },
   "locale": {
     "label": "Language",

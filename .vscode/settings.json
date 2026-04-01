@@ -1,0 +1,7 @@
+{
+  "explorer.fileNesting.enabled": true,
+  "explorer.fileNesting.expand": false,
+  "explorer.fileNesting.patterns": {
+    "package.json": "package-lock.json,pnpm-lock.yaml,yarn.lock,.npmrc,README.md,tsconfig.json,eslint.config.*,next.config.*,postcss.config.*,tailwind.config.*,middleware.ts,middleware.js,electron.vite.config.*,electron-builder.yml,vitest.config.*,playwright.config.*,.env.example"
+  }
+}

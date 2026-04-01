@@ -23,6 +23,13 @@ import { spawn, type ChildProcess } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import os from "node:os";
+import { spawnCmd } from "./spawn-utils";
+import { registerLauncherIpc, auditLog } from "./launcher-ipc";
+import {
+  collectRootDetectionSeeds,
+  detectSpektorsProjectRoot,
+  isSpektorsMonorepoRoot,
+} from "./project-root";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -111,25 +118,6 @@ function probeUrl(targetUrl: string, timeoutMs = 2500): Promise<boolean> {
   });
 }
 
-function spawnCmd(command: string, args: string[], cwd: string): ChildProcess {
-  const cwdResolved = path.resolve(cwd);
-  if (process.platform === "win32") {
-    const quote = (s: string) =>
-      /\s/.test(s) ? `"${s.replace(/"/g, '\\"')}"` : s;
-    const line = [command, ...args].map(quote).join(" ");
-    return spawn(line, {
-      shell: true,
-      cwd: cwdResolved,
-      env: { ...process.env },
-    });
-  }
-  return spawn(command, args, {
-    shell: false,
-    cwd: cwdResolved,
-    env: { ...process.env },
-  });
-}
-
 function preloadPath(): string {
   const base = path.join(__dirname, "../preload/index");
   const mjs = `${base}.mjs`;
@@ -139,14 +127,21 @@ function preloadPath(): string {
 }
 
 function loadWindowIcon(): Electron.NativeImage | undefined {
-  const png = path.resolve(__dirname, "../../resources/app-icon.png");
-  if (!existsSync(png)) return undefined;
-  try {
-    const img = nativeImage.createFromPath(png);
-    return img.isEmpty() ? undefined : img;
-  } catch {
-    return undefined;
+  const candidates = [
+    path.resolve(__dirname, "../../resources/app-icon.png"),
+    path.join(process.resourcesPath, "app-icon.png"),
+    path.join(app.getAppPath(), "resources", "app-icon.png"),
+  ];
+  for (const png of candidates) {
+    if (!existsSync(png)) continue;
+    try {
+      const img = nativeImage.createFromPath(png);
+      if (!img.isEmpty()) return img;
+    } catch {
+      /* */
+    }
   }
+  return undefined;
 }
 
 function stripWindowMenu(win: BrowserWindow): void {
@@ -357,22 +352,22 @@ ipcMain.handle("profile:writeFile", async (_e, json: string) => {
 });
 
 ipcMain.handle("project:validate", async (_e, root: string) => {
-  const r = path.resolve(root);
-  const pkg = path.join(r, "package.json");
-  const dc = path.join(r, "docker-compose.yml");
-  const api = path.join(r, "apps", "api");
-  try {
-    await access(pkg, fsConstants.R_OK);
-    await access(dc, fsConstants.R_OK);
-    await access(api, fsConstants.R_OK);
-    return { ok: true as const };
-  } catch {
-    return {
-      ok: false as const,
-      reason:
-        "Ожидается корень монорепо Spektors: package.json, docker-compose.yml, apps/api.",
-    };
-  }
+  const ok = await isSpektorsMonorepoRoot(root);
+  if (ok) return { ok: true as const };
+  return {
+    ok: false as const,
+    reason:
+      "Ожидается корень монорепо Spektors: package.json, docker-compose.yml, apps/api.",
+  };
+});
+
+ipcMain.handle("project:detectRoot", async () => {
+  const seeds = collectRootDetectionSeeds({
+    cwd: process.cwd(),
+    mainDirname: __dirname,
+    exeDir: path.dirname(app.getPath("exe")),
+  });
+  return detectSpektorsProjectRoot(seeds);
 });
 
 ipcMain.handle("fs:readEnv", async (_e, root: string) => {
@@ -387,6 +382,7 @@ ipcMain.handle("fs:readEnv", async (_e, root: string) => {
 ipcMain.handle("fs:writeEnv", async (_e, root: string, content: string) => {
   const p = path.join(path.resolve(root), ".env");
   await writeFile(p, content, "utf-8");
+  void auditLog({ action: "env.write", root: path.resolve(root) });
 });
 
 ipcMain.handle("fs:copyEnvExample", async (_e, root: string) => {
@@ -467,3 +463,5 @@ ipcMain.handle(
     return { pid: child.pid ?? null };
   },
 );
+
+registerLauncherIpc();

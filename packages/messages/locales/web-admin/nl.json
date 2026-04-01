@@ -11,7 +11,64 @@
   "nav": {
     "overview": "Overzicht",
     "inbox": "Chatwachtrij",
-    "swagger": "Swagger API"
+    "swagger": "Swagger API",
+    "productName": "Operatorconsole",
+    "mainNav": "Hoofdnavigatie",
+    "history": "Geschiedenis",
+    "apiDocs": "API-docs (ingebouwd)",
+    "swaggerNewTab": "Swagger (nieuw tabblad)",
+    "settings": "Instellingen",
+    "supervisor": "Supervisor",
+    "integrations": "Integraties",
+    "menuOpen": "Menu openen",
+    "menuClose": "Menu sluiten"
+  },
+  "operator": {
+    "label": "Jouw status",
+    "localHint": "Alleen in deze browser opgeslagen.",
+    "online": "Online",
+    "offline": "Offline",
+    "dnd": "Niet storen",
+    "current": "Zichtbaar als"
+  },
+  "docs": {
+    "title": "API-documentatie",
+    "hint": "Ingesloten Swagger UI van de API-server. Leeg? Controleer NEXT_PUBLIC_API_URL en CORS."
+  },
+  "history": {
+    "title": "Recente threads",
+    "empty": "Open een thread uit de wachtrij om hem hier te zien.",
+    "openInbox": "Naar wachtrij",
+    "openedAt": "Laatst geopend"
+  },
+  "settings": {
+    "title": "Instellingen",
+    "intro": "Voorkeuren worden alleen in deze browser bewaard.",
+    "operatorName": "Weergavenaam (voor auditlog)",
+    "operatorNameHint": "Gebruikt bij het bijwerken van threadmetadata.",
+    "pollInterval": "Interval verversen wachtrij (sec)",
+    "soundNewThread": "Geluid bij nieuwe threads (tab op achtergrond)",
+    "save": "Opslaan",
+    "checkApi": "API controleren",
+    "checking": "Bezig…",
+    "apiOk": "API reageert OK",
+    "apiFail": "API-controle mislukt"
+  },
+  "supervisor": {
+    "title": "Supervisor",
+    "intro": "Auditlog vereist INTERNAL_ADMIN_TOKEN op de Next-server.",
+    "auditTitle": "Recente auditgebeurtenissen",
+    "auditEmpty": "Nog geen gebeurtenissen.",
+    "reportsTitle": "Rapporten",
+    "reportsBody": "Operatorstatistieken en wachtrijgrafieken volgen na rapportage-API's.",
+    "action": "Actie",
+    "actor": "Actor",
+    "thread": "Thread",
+    "time": "Tijd"
+  },
+  "integrations": {
+    "title": "Integraties",
+    "body": "CRM, vertaling en tickets volgens productprioriteit. Service Worker en offline-concepten zijn optionele vervolgstappen."
   },
   "home": {
     "badge": "web-admin · poort 3002",
@@ -19,8 +76,10 @@
     "intro": "Antwoorden van operators gaan via POST /internal/admin/v1/sessions/…/threads/…/reply met Bearer INTERNAL_ADMIN_TOKEN op de API (indien ingesteld). Zie docs/FRONTEND_TZ.md.",
     "inboxCardTitle": "Chatwachtrij",
     "inboxCardDesc": "Threadlijst en operatorantwoord",
-    "threadsCardTitle": "Threads in DB",
-    "threadsCardDesc": "Gesorteerd op laatste bericht; optionele app_id-filter"
+    "threadListCardTitle": "Threadlijst",
+    "threadListCardDesc": "Inbox openen en naar de lijst scrollen",
+    "apiDocCardTitle": "API-documentatie",
+    "apiDocCardDesc": "OpenAPI / Swagger op de API-server"
   },
   "inbox": {
     "title": "Chatwachtrij",
@@ -49,7 +108,35 @@
     "directSubmit": "Verzenden als operator",
     "sending": "Verzenden…",
     "successPrefix": "Verzonden",
-    "successHint": "De klant ziet het antwoord na synchronisatie van de chat."
+    "successHint": "De klant ziet het antwoord na synchronisatie van de chat.",
+    "bffTab": "BFF (server)",
+    "directTab": "Directe API",
+    "composeTitle": "Antwoord",
+    "copySession": "session_id kopiëren",
+    "copyThread": "thread_id kopiëren",
+    "copiedToast": "Gekopieerd",
+    "loadMore": "Meer laden",
+    "loadingMore": "Laden…",
+    "endOfList": "Geen threads meer",
+    "statusLabel": "Status",
+    "searchPlaceholder": "Zoeken in preview of ID's…",
+    "collapseList": "Threadlijst verbergen",
+    "expandList": "Threadlijst tonen",
+    "dialogTitle": "Gesprek",
+    "messagesLoadError": "Berichten laden mislukt",
+    "noMessages": "Geen berichten",
+    "clientHeader": "Klant",
+    "keyboardHint": "Ctrl+Enter verzenden · Esc antwoord wissen",
+    "takeThread": "Pakken",
+    "returnQueue": "Terug naar wachtrij",
+    "workflowQueued": "In wachtrij",
+    "workflowAssigned": "In behandeling",
+    "workflowClosed": "Gesloten",
+    "internalNote": "Interne notitie (alleen operators)",
+    "saveNote": "Notitie opslaan",
+    "templatesLabel": "Snelle antwoorden",
+    "urgentWait": "Lange wachttijd",
+    "metaUpdateError": "Threadmetadata bijwerken mislukt"
   },
   "locale": {
     "label": "Taal",

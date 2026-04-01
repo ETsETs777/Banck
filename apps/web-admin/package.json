@@ -14,13 +14,14 @@
     "@spektors/next-i18n": "*",
     "@spektors/ui-shell": "*",
     "@spektors/ui-tokens": "*",
+    "@tanstack/react-virtual": "^3.13.23",
     "next": "^15.2.4",
     "next-intl": "^3.26.5",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
-    "@eslint/eslintrc": "^3",
+    "@spektors/web-config": "*",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

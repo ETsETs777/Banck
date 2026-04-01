@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
+  SPEKTORS_PROFILE_STORAGE_KEY,
   loadSpektorsProfile,
   profileInitials,
   saveSpektorsProfile,
@@ -15,6 +16,11 @@ export type ProfileMenuProps = {
   onAfterSave?: (p: SpektorsProfileV1) => void | Promise<void>;
   /** В лаунчере — центрированное окно без обрезания по краю окна. */
   presentation?: "popover" | "modal";
+  /**
+   * compact — узкая кнопка (как в шапке).
+   * sidebar — полная карточка для колонки навигации лаунчера.
+   */
+  triggerLayout?: "compact" | "sidebar";
 };
 
 function ProfileForm(props: {
@@ -116,6 +122,7 @@ export function ProfileMenu({
   className,
   onAfterSave,
   presentation = "popover",
+  triggerLayout = "compact",
 }: ProfileMenuProps) {
   const [open, setOpen] = useState(false);
   const [profile, setProfile] = useState<SpektorsProfileV1>(() => {
@@ -124,6 +131,15 @@ export function ProfileMenu({
   const [nameDraft, setNameDraft] = useState(profile.displayName);
   const [emailDraft, setEmailDraft] = useState(profile.email ?? "");
   const rootRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key !== SPEKTORS_PROFILE_STORAGE_KEY) return;
+      setProfile(loadSpektorsProfile() ?? { displayName: "Гость" });
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
 
   useEffect(() => {
     if (!open) return;
@@ -214,8 +230,52 @@ export function ProfileMenu({
     </div>
   );
 
-  return (
-    <div ref={rootRef} className={className ?? "relative"}>
+  const triggerButton =
+    triggerLayout === "sidebar" ? (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="flex w-full items-center gap-2.5 rounded-xl border px-2.5 py-2.5 text-left transition hover:border-[color:var(--accent)]/45"
+        style={{
+          borderColor: "var(--glass-border)",
+          background: "var(--panel-fill)",
+        }}
+        aria-expanded={open}
+        aria-haspopup="dialog"
+      >
+        <span
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-xs font-bold text-zinc-950 shadow-sm"
+          style={{ background: "var(--accent)" }}
+        >
+          {letter}
+        </span>
+        <div className="min-w-0 flex-1">
+          <span
+            className="block truncate text-xs font-semibold"
+            style={{ color: "var(--fg)" }}
+          >
+            {profile.displayName}
+          </span>
+          <span
+            className="mt-0.5 block truncate text-[10px]"
+            style={{ color: "var(--fg-muted)" }}
+          >
+            {profile.email?.trim()
+              ? profile.email
+              : "Профиль · нажмите, чтобы изменить"}
+          </span>
+        </div>
+        <span
+          className="shrink-0 rounded-lg px-2 py-1 text-[10px] font-bold uppercase tracking-wide"
+          style={{
+            background: "color-mix(in srgb, var(--accent) 22%, transparent)",
+            color: "var(--accent)",
+          }}
+        >
+          Изменить
+        </span>
+      </button>
+    ) : (
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -242,6 +302,11 @@ export function ProfileMenu({
           </span>
         </span>
       </button>
+    );
+
+  return (
+    <div ref={rootRef} className={className ?? "relative"}>
+      {triggerButton}
 
       {open && presentation === "modal" && typeof document !== "undefined"
         ? createPortal(dialog, document.body)

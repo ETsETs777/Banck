@@ -3,6 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "description": "Десктоп-лаунчер монорепозитория Spektors: Docker, сервисы, .env, ссылки.",
+  "author": "Spektors",
   "main": "out/main/index.js",
   "scripts": {
     "icons": "node scripts/generate-icon.mjs",
@@ -10,11 +12,14 @@
     "prebuild": "npm run icons",
     "dev": "electron-vite dev",
     "build": "electron-vite build",
-    "preview": "electron-vite preview"
+    "preview": "electron-vite preview",
+    "dist": "npm run build && electron-builder",
+    "dist:win": "npm run build && electron-builder --win"
   },
   "dependencies": {
     "@spektors/ui-shell": "*",
     "@spektors/ui-tokens": "*",
+    "@tanstack/react-virtual": "^3.11.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
@@ -27,6 +32,7 @@
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.7.2",
-    "vite": "^6.0.3"
+    "vite": "^6.0.3",
+    "electron-builder": "^25.1.8"
   }
 }

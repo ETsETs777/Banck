@@ -1,0 +1,19 @@
+{
+  "name": "@spektors/web-config",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./eslint-next": "./eslint-next.mjs",
+    "./postcss-next": "./postcss-next.mjs",
+    "./tailwind-next": "./tailwind-next.mjs"
+  },
+  "dependencies": {
+    "@eslint/eslintrc": "^3"
+  },
+  "peerDependencies": {
+    "@spektors/ui-tokens": "*",
+    "eslint": "^9",
+    "eslint-config-next": ">=15"
+  }
+}

@@ -1,0 +1,44 @@
+# Сборка установщика Windows (NSIS): ярлык на рабочем столе и в меню «Пуск».
+# Запуск из каталога приложения: npm run dist:win
+#
+# В npm workspaces пакет electron обычно поднят в корень репо — явная версия
+# нужна, чтобы electron-builder не искал node_modules/electron только в apps/*.
+
+electronVersion: 34.5.8
+
+appId: com.spektors.launcher
+productName: Spektors Launcher
+copyright: Copyright © Spektors
+
+directories:
+  output: release
+  buildResources: build
+
+files:
+  - out/**/*
+  - package.json
+  - resources/**/*
+
+win:
+  # Без подписи кода: на Windows без режима разработчика распаковка winCodeSign
+  # падает на symlink внутри darwin-артефактов архива.
+  signAndEditExecutable: false
+  target:
+    - target: nsis
+      arch:
+        - x64
+  # PNG 512×512 из `npm run icons`; electron-builder соберёт иконки exe/установщика.
+  icon: resources/app-icon.png
+  artifactName: ${productName}-${version}-Setup.${ext}
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: always
+  createStartMenuShortcut: true
+  shortcutName: Spektors Launcher
+  installerLanguages:
+    - ru_RU
+    - en_US
+  language: "1049"

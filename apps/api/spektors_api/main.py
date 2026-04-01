@@ -37,7 +37,7 @@ from spektors_api.integrations.ollama_http import close_ollama_http, open_ollama
 from spektors_api.middleware.rate_limit import RateLimitMiddleware
 from spektors_api.middleware.request_id import RequestIdMiddleware
 from spektors_api.openapi import API_DESCRIPTION, OPENAPI_TAGS, attach_custom_openapi
-from spektors_api.routers import admin_chat, chat, llm, rag
+from spektors_api.routers import admin_chat, admin_ws, chat, llm, rag
 from spektors_api.schemas import AppMetaPublic, HealthDb, HealthOk, HealthWithRole, MetaConfigCheck
 from spektors_api.security.internal_auth import require_internal_admin, require_internal_dev
 
@@ -99,6 +99,7 @@ app.include_router(llm.router)
 app.include_router(chat.router)
 app.include_router(rag.router)
 app.include_router(admin_chat.router)
+app.include_router(admin_ws.router, prefix="/internal/admin/v1")
 
 
 @app.exception_handler(HTTPException)

@@ -1,26 +1,189 @@
 @import "@spektors/ui-tokens/theme.css";
 
+/* Нативные поля (Electron/Windows): подсказка движку о светлой/тёмной схеме */
+html[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+html[data-theme="light"] {
+  color-scheme: light;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
   --font-sans: "Outfit", system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --font-mono: "JetBrains Mono", ui-monospace, Consolas, "Fira Code", monospace;
   --panel-fill: rgba(255, 255, 255, 0.04);
   --sidebar-bg: rgba(8, 10, 14, 0.92);
+  --status-running: #34d399;
+  --status-restarting: #fbbf24;
+  --status-error: #f87171;
+  --status-stopped: #6b7280;
+  --log-error-border: #f87171;
+  --log-error-bg: rgba(248, 113, 113, 0.08);
+  --log-warn-border: #fbbf24;
+  --log-warn-bg: rgba(251, 191, 36, 0.08);
+  --log-info-border: #60a5fa;
+  --log-info-bg: rgba(96, 165, 250, 0.06);
+  --log-debug-border: #a78bfa;
+  --log-debug-bg: rgba(167, 139, 250, 0.06);
 }
 
 [data-theme="light"] {
   --panel-fill: rgba(255, 255, 255, 0.72);
   --sidebar-bg: rgba(236, 239, 243, 0.96);
+  --log-error-bg: rgba(220, 38, 38, 0.08);
+  --log-warn-bg: rgba(217, 119, 6, 0.1);
+  --log-info-bg: rgba(37, 99, 235, 0.06);
+  --log-debug-bg: rgba(124, 58, 237, 0.06);
+}
+
+/* Анимированный фон лаунчера (тёмная / светлая тема) */
+:root,
+[data-theme="dark"] {
+  --launcher-aurora-a: color-mix(in srgb, var(--accent) 50%, transparent);
+  --launcher-aurora-b: color-mix(in srgb, var(--accent-chat) 42%, transparent);
+  --launcher-aurora-c: color-mix(in srgb, #60a5fa 38%, transparent);
+  --launcher-aurora-opacity: 0.42;
+  --launcher-aurora-mesh-opacity: 0.92;
+}
+
+[data-theme="light"] {
+  --launcher-aurora-a: color-mix(in srgb, var(--accent) 28%, #ffffff);
+  --launcher-aurora-b: color-mix(in srgb, var(--accent-chat) 22%, #ffffff);
+  --launcher-aurora-c: color-mix(in srgb, #7dd3fc 26%, #ffffff);
+  --launcher-aurora-opacity: 0.5;
+  --launcher-aurora-mesh-opacity: 1;
+}
+
+.launcher-app-root {
+  position: relative;
+  isolation: isolate;
+  background-color: var(--bg);
+}
+
+.launcher-ambient {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.launcher-ambient__mesh {
+  position: absolute;
+  inset: -5%;
+  background: var(--bg-gradient);
+  opacity: var(--launcher-aurora-mesh-opacity);
+  animation: launcher-mesh-drift 36s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+.launcher-ambient__orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(68px);
+  opacity: var(--launcher-aurora-opacity);
+  will-change: transform;
+}
+
+.launcher-ambient__orb--a {
+  width: min(62vmin, 520px);
+  height: min(62vmin, 520px);
+  background: var(--launcher-aurora-a);
+  top: -18%;
+  left: -12%;
+  animation: launcher-float-a 24s ease-in-out infinite alternate;
+}
+
+.launcher-ambient__orb--b {
+  width: min(58vmin, 480px);
+  height: min(58vmin, 480px);
+  background: var(--launcher-aurora-b);
+  bottom: -22%;
+  right: -8%;
+  animation: launcher-float-b 28s ease-in-out infinite alternate;
+}
+
+.launcher-ambient__orb--c {
+  width: min(48vmin, 420px);
+  height: min(48vmin, 420px);
+  background: var(--launcher-aurora-c);
+  top: 38%;
+  left: 42%;
+  animation: launcher-float-c 31s ease-in-out infinite alternate;
+}
+
+@keyframes launcher-mesh-drift {
+  0% {
+    transform: scale(1) translate(0%, 0%) rotate(0deg);
+  }
+  100% {
+    transform: scale(1.12) translate(-3%, 4%) rotate(2deg);
+  }
+}
+
+@keyframes launcher-float-a {
+  0% {
+    transform: translate(0, 0) scale(1);
+  }
+  100% {
+    transform: translate(12%, 14%) scale(1.12);
+  }
+}
+
+@keyframes launcher-float-b {
+  0% {
+    transform: translate(0, 0) scale(1.05);
+  }
+  100% {
+    transform: translate(-10%, -8%) scale(1);
+  }
+}
+
+@keyframes launcher-float-c {
+  0% {
+    transform: translate(-6%, 4%) scale(1);
+  }
+  100% {
+    transform: translate(10%, -12%) scale(1.18);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .launcher-ambient__mesh,
+  .launcher-ambient__orb--a,
+  .launcher-ambient__orb--b,
+  .launcher-ambient__orb--c {
+    animation: none;
+  }
+
+  .launcher-ambient__mesh {
+    transform: none;
+  }
+}
+
+.launcher-app-stack {
+  position: relative;
+  z-index: 1;
 }
 
 html,
-body,
-#root {
+body {
   height: 100%;
   margin: 0;
+}
+
+#root {
+  height: 100%;
+  min-height: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 body {
@@ -33,4 +196,155 @@ body {
 
 .font-mono {
   font-family: var(--font-mono);
+}
+
+/* Тонкие скроллбары в лаунчере (без «толстых» полос Windows) */
+.launcher-thin-scroll,
+.launcher-sidebar-scroll,
+.launcher-log-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--fg-muted) 40%, transparent)
+    transparent;
+}
+
+.launcher-thin-scroll::-webkit-scrollbar,
+.launcher-sidebar-scroll::-webkit-scrollbar,
+.launcher-log-scroll::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.launcher-thin-scroll::-webkit-scrollbar-thumb,
+.launcher-sidebar-scroll::-webkit-scrollbar-thumb,
+.launcher-log-scroll::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--fg-muted) 35%, transparent);
+  border-radius: 4px;
+}
+
+.launcher-thin-scroll::-webkit-scrollbar-track,
+.launcher-sidebar-scroll::-webkit-scrollbar-track,
+.launcher-log-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Область логов: лёгкое «дыхание» фона (отключается при reduced-motion) */
+.command-log-viewport {
+  position: relative;
+  isolation: isolate;
+}
+
+.command-log-viewport::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.45;
+  background: radial-gradient(
+      ellipse 85% 65% at 50% 0%,
+      color-mix(in srgb, var(--accent) 16%, transparent),
+      transparent 55%
+    ),
+    radial-gradient(
+      ellipse 70% 50% at 100% 100%,
+      color-mix(in srgb, #60a5fa 12%, transparent),
+      transparent 50%
+    );
+  animation: command-log-viewport-breathe 10s ease-in-out infinite alternate;
+}
+
+.command-log-viewport > * {
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes command-log-viewport-breathe {
+  0% {
+    opacity: 0.35;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0.55;
+    transform: scale(1.02);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .command-log-viewport::before {
+    animation: none;
+    opacity: 0.4;
+    transform: none;
+  }
+}
+
+/* ─── Единый визуальный язык панелей и хрома ─── */
+.launcher-glass-panel {
+  border-radius: 0.875rem;
+  border: 1px solid color-mix(in srgb, var(--glass-border) 88%, transparent);
+  background: linear-gradient(
+    155deg,
+    color-mix(in srgb, var(--glass-highlight) 58%, transparent),
+    var(--panel-fill)
+  );
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--accent) 9%, transparent),
+    0 18px 50px -32px rgba(0, 0, 0, 0.58);
+  backdrop-filter: blur(12px);
+}
+
+[data-theme="light"] .launcher-glass-panel {
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--accent) 14%, transparent),
+    0 14px 44px -26px rgba(0, 0, 0, 0.14);
+}
+
+.launcher-chrome-bar {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--sidebar-bg) 100%, transparent) 0%,
+    color-mix(in srgb, var(--sidebar-bg) 88%, transparent) 100%
+  );
+  backdrop-filter: blur(14px);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--glass-border) 45%, transparent);
+}
+
+.launcher-rail-column {
+  box-shadow: inset -1px 0 0 color-mix(in srgb, var(--glass-border) 55%, transparent);
+}
+
+.launcher-dock-column {
+  box-shadow: inset 1px 0 0 color-mix(in srgb, var(--glass-border) 45%, transparent);
+}
+
+.launcher-save-strip {
+  background: linear-gradient(
+    0deg,
+    color-mix(in srgb, var(--sidebar-bg) 96%, transparent),
+    color-mix(in srgb, var(--bg) 35%, transparent)
+  );
+  backdrop-filter: blur(10px);
+}
+
+.launcher-primary-cta {
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--accent) 42%, transparent),
+    color-mix(in srgb, var(--accent) 22%, transparent)
+  );
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent),
+    0 8px 28px -12px color-mix(in srgb, var(--accent) 55%, transparent);
+  transition: filter 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
+}
+
+.launcher-primary-cta:hover:not(:disabled) {
+  filter: brightness(1.06);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent),
+    0 12px 36px -10px color-mix(in srgb, var(--accent) 50%, transparent);
+}
+
+.launcher-primary-cta:active:not(:disabled) {
+  transform: scale(0.99);
 }

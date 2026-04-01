@@ -90,10 +90,40 @@ class AdminInboxThreadRow(BaseModel):
     last_preview: str | None = None
     updated_at: str | None = None
     message_count: int = 0
+    workflow_status: str = Field(
+        default="queued",
+        description="queued | assigned | closed (из admin_thread_meta)",
+    )
+    assignee_label: str | None = None
+    tags: list[str] = Field(default_factory=list)
 
 
 class AdminThreadsListResponse(BaseModel):
     items: list[AdminInboxThreadRow]
+    limit: int
+    offset: int
+
+
+class AdminThreadMetaResponse(BaseModel):
+    thread_id: str
+    workflow_status: str
+    assignee_label: str | None = None
+    tags: list[str] = Field(default_factory=list)
+    internal_note: str | None = None
+    updated_at: str | None = None
+
+
+class AdminAuditEntry(BaseModel):
+    id: int
+    actor_label: str | None = None
+    action: str
+    thread_id: str | None = None
+    payload: dict[str, Any] = Field(default_factory=dict)
+    created_at: str | None = None
+
+
+class AdminAuditListResponse(BaseModel):
+    items: list[AdminAuditEntry]
     limit: int
     offset: int
 
