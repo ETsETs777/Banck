@@ -4,19 +4,34 @@
     "description": "Lightweight client and chat"
   },
   "common": {
+    "skipToMain": "Skip to main content",
     "themeToggle": "Toggle theme",
     "themeToLight": "Light theme",
     "themeToDark": "Dark theme"
   },
+  "error": {
+    "title": "Could not load this page",
+    "hint": "Free port 3001, delete apps/web-lite/.next, restart the dev server. See the browser console (F12) and the details below.",
+    "retry": "Try again"
+  },
   "home": {
     "badge": "web-lite · port 3001",
-    "title": "Spektors · Lite",
+    "shellProduct": "Spektors · Lite",
+    "title": "Chat",
+    "tagline": "Lightweight UI for the same API.",
+    "helpTitle": "Connection details",
+    "helpExpand": "API and environment help",
+    "helpCollapse": "Hide help",
+    "apiResolvedLabel": "Current API base URL in this browser:",
     "intro": "Same API, different header <codeAppId>X-App-Id: web_lite</codeAppId>. <codeApiUrl>NEXT_PUBLIC_API_URL</codeApiUrl> is the backend base URL."
   },
   "chat": {
+    "panelAriaLabel": "Assistant chat",
+    "messageFieldAriaLabel": "Chat message text",
     "db": "DB",
     "llm": "LLM",
     "api": "API",
+    "apiEndpointTitle": "Base URL",
     "statusOk": "ok",
     "statusNo": "no",
     "statusWait": "…",

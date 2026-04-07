@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Spektors API",
-    "description": "\n## Spektors API\n\nБэкенд веб-банка и локальной LLM: PostgreSQL для чата, Ollama для инференса, опционально Chroma (RAG).\n\n### Документация\n- Журнал изменений API (черновик): **`docs/API_CHANGELOG.md`** в репозитории.\n- **Swagger UI**: [`/docs`](/docs)\n- **ReDoc**: [`/redoc`](/redoc)\n- **OpenAPI JSON**: [`/openapi.json`](/openapi.json)\n\nПри переменной окружения **`DISABLE_OPENAPI`** = `1` / `true` / `yes` эти конечные точки отключены (см. `docs/SECURITY.md` в репозитории).\n\n### Authorize в Swagger\n1. **API Key `X-App-Id`** — *Authorize* → API Key, значение из `config/apps.yaml` (`web_client`, `web_lite`, …). Нужен для чата, RAG и **`POST /api/v1/chat/completions`**.\n2. **HTTP Bearer** — для маршрутов **`/internal/*`** вставьте **`INTERNAL_ADMIN_TOKEN`** (admin) или **`INTERNAL_DEV_TOKEN`** (dev), если переменные заданы на сервере (описание у схемы в UI).\n\n### Заголовок X-App-Id\nПубличные маршруты чата, **`POST /api/v1/rag/query`** и **`POST /api/v1/chat/completions`** требуют заголовок **`X-App-Id`**\nиз реестра приложений. CORS-источники задаются в `config/apps.yaml` для каждого приложения.\n\n### Идентификаторы сессии и треда\nВ теле **`POST /api/v1/chat`** и в пути **`GET .../messages`**: `session_id` и `thread_id` — строка **hex** длиной **8–64** символов\n(как у `uuid.uuid4().hex`), **без дефисов**. Несоответствие формату даёт ответ **422**.\n\n### Internal API\nПри заданных переменных **`INTERNAL_ADMIN_TOKEN`** и **`INTERNAL_DEV_TOKEN`** соответствующие маршруты\nтребуют **`Authorization: Bearer …`**. Если токен не задан — доступ открыт (только для разработки).\nПри **`INTERNAL_AUTH_STRICT=1`** (или `true` / `yes`) без заданного токена для роли маршрут отвечает **503** `internal_auth_not_configured` — закрывает «открытый internal» в проде.\n\n### Производительность (обзор)\nЗапросы к **Ollama** (чат, прокси completions, эмбеддинги RAG) идут через **один async HTTP-клиент на процесс**\nс keep-alive и лимитом соединений — меньше накладных расходов, чем при новом клиенте на каждый запрос.\nPostgreSQL — через **asyncpg pool** (`spektors_api.database.pool`), размер пула: **`DB_POOL_MIN`** / **`DB_POOL_MAX`**.\n\n### Корреляция запросов\nЗаголовок **`X-Request-ID`**: клиент может прислать свой; иначе API сгенерирует id и вернёт его в ответе (также в **`Access-Control-Expose-Headers`** для браузера).\n**`text/event-stream`** (SSE) не сжимается gzip middleware.\n\n### Логи\nУровень логирования: переменная **`LOG_LEVEL`** (по умолчанию `INFO`).\n\n### Лимит частоты\nДля **POST** к **`/api/v1/chat`**, **`/api/v1/rag/query`**, **`/api/v1/chat/completions`** действует лимит запросов в минуту на пару **IP + `X-App-Id`**\n(скользящее окно ~60 с). Переменная **`RATE_LIMIT_PER_MINUTE`** (по умолчанию **120**); **`0`** — отключить.\nОтвет **429** содержит JSON с `detail: rate_limit_exceeded` и заголовок **`Retry-After`** (секунды); заголовок продублирован в **`Access-Control-Expose-Headers`** для браузера.\n\n### Kubernetes\n- **`GET /api/v1/health/live`** — liveness без проверки БД.\n- **`GET /api/v1/health/ready`** — readiness; при недоступности Postgres ответ **503**.\n",
+    "description": "\n## Spektors API\n\nБэкенд веб-банка и локальной LLM: PostgreSQL для чата, Ollama для инференса, опционально Chroma (RAG).\n\n### Документация\n- Журнал изменений API (черновик): **`docs/API_CHANGELOG.md`** в репозитории.\n- **Swagger UI**: [`/docs`](/docs)\n- **ReDoc**: [`/redoc`](/redoc)\n- **OpenAPI JSON**: [`/openapi.json`](/openapi.json)\n\nПри переменной окружения **`DISABLE_OPENAPI`** = `1` / `true` / `yes` эти конечные точки отключены (см. `docs/SECURITY.md` в репозитории).\n\n### Authorize в Swagger\n1. **API Key `X-App-Id`** — *Authorize* → API Key, значение из `config/apps.yaml` (`web_client`, `web_lite`, …). Нужен для чата, RAG и **`POST /api/v1/chat/completions`**.\n2. **HTTP Bearer** — для маршрутов **`/internal/*`** вставьте **`INTERNAL_ADMIN_TOKEN`** (admin) или **`INTERNAL_DEV_TOKEN`** (dev), если переменные заданы на сервере (описание у схемы в UI).\n\n### Заголовок X-App-Id\nПубличные маршруты чата, **`POST /api/v1/rag/query`** и **`POST /api/v1/chat/completions`** требуют заголовок **`X-App-Id`**\nиз реестра приложений. CORS-источники задаются в `config/apps.yaml` для каждого приложения.\n\n### Идентификаторы сессии и треда\nВ теле **`POST /api/v1/chat`** и в пути **`GET .../messages`**: `session_id` и `thread_id` — строка **hex** длиной **8–64** символов\n(как у `uuid.uuid4().hex`), **без дефисов**. Несоответствие формату даёт ответ **422**.\n\n### Internal API\nПри заданных переменных **`INTERNAL_ADMIN_TOKEN`** и **`INTERNAL_DEV_TOKEN`** соответствующие маршруты\nтребуют **`Authorization: Bearer …`**. Если токен не задан — доступ открыт (только для разработки).\nПри **`INTERNAL_AUTH_STRICT=1`** (или `true` / `yes`) без заданного токена для роли маршрут отвечает **503** `internal_auth_not_configured` — закрывает «открытый internal» в проде.\n\n### Производительность (обзор)\nЗапросы к **Ollama** (чат, прокси completions, эмбеддинги RAG) идут через **один async HTTP-клиент на процесс**\nс keep-alive и лимитом соединений — меньше накладных расходов, чем при новом клиенте на каждый запрос.\nPostgreSQL — через **asyncpg pool** (`spektors_api.database.pool`), размер пула: **`DB_POOL_MIN`** / **`DB_POOL_MAX`**.\n\n### Корреляция запросов\nЗаголовок **`X-Request-ID`**: клиент может прислать свой; иначе API сгенерирует id и вернёт его в ответе (также в **`Access-Control-Expose-Headers`** для браузера).\n**`text/event-stream`** (SSE) не сжимается gzip middleware.\n\n### Ошибки и Accept-Language\nДля ряда ответов **HTTPException** с текстовым **`detail`** (код вроде `unknown_app`, `thread_not_found`) тело JSON дополняется полем **`message`** — человекочитаемая строка на языке из **`Accept-Language`** (**ru**, **nl**, иначе **en**). Заголовок ответа **`Content-Language`** дублирует выбранную локаль. Код в **`detail`** для клиентской логики сохраняется.\n\n### Логи\nУровень логирования: переменная **`LOG_LEVEL`** (по умолчанию `INFO`).\n\n### Лимит частоты\nДля **POST** к **`/api/v1/chat`**, **`/api/v1/rag/query`**, **`/api/v1/chat/completions`** действует лимит запросов в минуту на пару **IP + `X-App-Id`**\n(скользящее окно ~60 с). Переменная **`RATE_LIMIT_PER_MINUTE`** (по умолчанию **120**); **`0`** — отключить.\nОтвет **429** содержит JSON с `detail: rate_limit_exceeded` и заголовок **`Retry-After`** (секунды); заголовок продублирован в **`Access-Control-Expose-Headers`** для браузера.\n\n### Kubernetes\n- **`GET /api/v1/health/live`** — liveness без проверки БД.\n- **`GET /api/v1/health/ready`** — readiness; при недоступности Postgres ответ **503**.\n",
     "version": "0.1.0"
   },
   "paths": {
@@ -437,6 +437,239 @@
         }
       }
     },
+    "/internal/admin/v1/sessions/{session_id}/threads/{thread_id}/meta": {
+      "get": {
+        "tags": [
+          "internal"
+        ],
+        "summary": "Метаданные треда (оператор)",
+        "operationId": "get_thread_meta_internal_admin_v1_sessions__session_id__threads__thread_id__meta_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 8,
+              "maxLength": 64,
+              "pattern": "^[a-fA-F0-9]+$",
+              "description": "Идентификатор сессии или треда: hex 8–64 символов (как `uuid.uuid4().hex`), без дефисов",
+              "examples": [
+                "a1b2c3d4e5f6789012345678abcdef01"
+              ],
+              "title": "Session Id"
+            },
+            "description": "Идентификатор сессии или треда: hex 8–64 символов (как `uuid.uuid4().hex`), без дефисов"
+          },
+          {
+            "name": "thread_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 8,
+              "maxLength": 64,
+              "pattern": "^[a-fA-F0-9]+$",
+              "description": "Идентификатор сессии или треда: hex 8–64 символов (как `uuid.uuid4().hex`), без дефисов",
+              "examples": [
+                "a1b2c3d4e5f6789012345678abcdef01"
+              ],
+              "title": "Thread Id"
+            },
+            "description": "Идентификатор сессии или треда: hex 8–64 символов (как `uuid.uuid4().hex`), без дефисов"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminThreadMetaResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "internal"
+        ],
+        "summary": "Обновить метаданные треда",
+        "operationId": "patch_thread_meta_internal_admin_v1_sessions__session_id__threads__thread_id__meta_patch",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 8,
+              "maxLength": 64,
+              "pattern": "^[a-fA-F0-9]+$",
+              "description": "Идентификатор сессии или треда: hex 8–64 символов (как `uuid.uuid4().hex`), без дефисов",
+              "examples": [
+                "a1b2c3d4e5f6789012345678abcdef01"
+              ],
+              "title": "Session Id"
+            },
+            "description": "Идентификатор сессии или треда: hex 8–64 символов (как `uuid.uuid4().hex`), без дефисов"
+          },
+          {
+            "name": "thread_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 8,
+              "maxLength": 64,
+              "pattern": "^[a-fA-F0-9]+$",
+              "description": "Идентификатор сессии или треда: hex 8–64 символов (как `uuid.uuid4().hex`), без дефисов",
+              "examples": [
+                "a1b2c3d4e5f6789012345678abcdef01"
+              ],
+              "title": "Thread Id"
+            },
+            "description": "Идентификатор сессии или треда: hex 8–64 символов (как `uuid.uuid4().hex`), без дефисов"
+          },
+          {
+            "name": "actor_label",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 128
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Подпись оператора для журнала аудита",
+              "title": "Actor Label"
+            },
+            "description": "Подпись оператора для журнала аудита"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ThreadMetaPatchBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminThreadMetaResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/admin/v1/audit-log": {
+      "get": {
+        "tags": [
+          "internal"
+        ],
+        "summary": "Журнал действий операторов",
+        "operationId": "get_audit_log_internal_admin_v1_audit_log_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 500,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000000,
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminAuditListResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/internal/admin/v1/sessions/{session_id}/threads/{thread_id}/reply": {
       "post": {
         "tags": [
@@ -744,6 +977,88 @@
   },
   "components": {
     "schemas": {
+      "AdminAuditEntry": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "actor_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actor Label"
+          },
+          "action": {
+            "type": "string",
+            "title": "Action"
+          },
+          "thread_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Thread Id"
+          },
+          "payload": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Payload"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "action"
+        ],
+        "title": "AdminAuditEntry"
+      },
+      "AdminAuditListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AdminAuditEntry"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "limit",
+          "offset"
+        ],
+        "title": "AdminAuditListResponse"
+      },
       "AdminInboxThreadRow": {
         "properties": {
           "thread_id": {
@@ -784,6 +1099,30 @@
             "type": "integer",
             "title": "Message Count",
             "default": 0
+          },
+          "workflow_status": {
+            "type": "string",
+            "title": "Workflow Status",
+            "description": "queued | assigned | closed (из admin_thread_meta)",
+            "default": "queued"
+          },
+          "assignee_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assignee Label"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tags"
           }
         },
         "type": "object",
@@ -794,6 +1133,64 @@
         ],
         "title": "AdminInboxThreadRow",
         "description": "Строка списка тредов для инбокса оператора."
+      },
+      "AdminThreadMetaResponse": {
+        "properties": {
+          "thread_id": {
+            "type": "string",
+            "title": "Thread Id"
+          },
+          "workflow_status": {
+            "type": "string",
+            "title": "Workflow Status"
+          },
+          "assignee_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assignee Label"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tags"
+          },
+          "internal_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Internal Note"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "thread_id",
+          "workflow_status"
+        ],
+        "title": "AdminThreadMetaResponse"
       },
       "AdminThreadsListResponse": {
         "properties": {
@@ -1346,6 +1743,66 @@
           "messages"
         ],
         "title": "ThreadMessagesResponse"
+      },
+      "ThreadMetaPatchBody": {
+        "properties": {
+          "workflow_status": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "queued",
+                  "assigned",
+                  "closed"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Workflow Status"
+          },
+          "assignee_label": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 128
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assignee Label"
+          },
+          "tags": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tags"
+          },
+          "internal_note": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 32000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Internal Note"
+          }
+        },
+        "type": "object",
+        "title": "ThreadMetaPatchBody"
       },
       "ValidationError": {
         "properties": {

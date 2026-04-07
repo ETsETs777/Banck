@@ -8,3 +8,34 @@ body {
   background-image: var(--bg-gradient);
   min-height: 100vh;
 }
+
+/* Skip link: без Tailwind not-sr-only (совместимость со всеми пресетами) */
+.skip-to-main {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+.skip-to-main:focus {
+  position: fixed;
+  left: 1rem;
+  top: 1rem;
+  z-index: 100;
+  width: auto;
+  height: auto;
+  margin: 0;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
+  border-width: 1px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+}
+.skip-to-main:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}

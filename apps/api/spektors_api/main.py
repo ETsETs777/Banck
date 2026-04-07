@@ -36,6 +36,7 @@ from spektors_api.database.pool import close_db, init_db, ping_db
 from spektors_api.integrations.ollama_http import close_ollama_http, open_ollama_http
 from spektors_api.middleware.rate_limit import RateLimitMiddleware
 from spektors_api.middleware.request_id import RequestIdMiddleware
+from spektors_api.docs_ui import register_openapi_docs_ui
 from spektors_api.openapi import API_DESCRIPTION, OPENAPI_TAGS, attach_custom_openapi
 from spektors_api.routers import admin_chat, admin_ws, chat, llm, rag
 from spektors_api.schemas import AppMetaPublic, HealthDb, HealthOk, HealthWithRole, MetaConfigCheck
@@ -90,11 +91,13 @@ app = FastAPI(
     version="0.1.0",
     lifespan=lifespan,
     openapi_tags=OPENAPI_TAGS,
-    docs_url="/docs" if _openapi_on else None,
-    redoc_url="/redoc" if _openapi_on else None,
+    docs_url=None,
+    redoc_url=None,
     openapi_url="/openapi.json" if _openapi_on else None,
 )
 attach_custom_openapi(app)
+if _openapi_on:
+    register_openapi_docs_ui(app)
 app.include_router(llm.router)
 app.include_router(chat.router)
 app.include_router(rag.router)

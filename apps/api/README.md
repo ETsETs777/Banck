@@ -26,6 +26,7 @@ Docker: контекст сборки — **корень репозитория*
 |------|------------|
 | `main.py` | Экземпляр `app`, lifespan, CORS/GZip/RequestId, health/meta, подключение роутеров |
 | `openapi.py` | Описание API для Swagger/ReDoc, постобработка схемы |
+| `docs_ui.py` | Кастомные `/docs` (Swagger UI) и `/redoc` с тёмной темой; статика `static/docs_assets/*.css` |
 | `config/apps.py` | Загрузка `config/apps.yaml`, CORS origins, валидация при старте |
 | `database/pool.py` | Пул asyncpg, DDL и миграции |
 | `database/chat_repository.py` | Сессии, треды, сообщения |

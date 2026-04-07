@@ -4,19 +4,34 @@
     "description": "Web banking and chat with a local LLM"
   },
   "common": {
+    "skipToMain": "Skip to main content",
     "themeToggle": "Toggle theme",
     "themeToLight": "Light theme",
     "themeToDark": "Dark theme"
   },
+  "error": {
+    "title": "Could not load this page",
+    "hint": "Stop anything else using port 3000, delete apps/web-client/.next, then restart the dev server. If it keeps failing, check the browser console (F12) and the details below.",
+    "retry": "Try again"
+  },
   "home": {
     "badge": "web-client · port 3000",
-    "title": "Spektors · chat",
+    "shellProduct": "Spektors · client",
+    "title": "Chat",
+    "tagline": "Messages and replies are stored on the server.",
+    "helpTitle": "Connection details",
+    "helpExpand": "API and environment help",
+    "helpCollapse": "Hide help",
+    "apiResolvedLabel": "Current API base URL in this browser:",
     "intro": "The public API uses the header <codeAppId>X-App-Id: web_client</codeAppId>. The <codeApiUrl>NEXT_PUBLIC_API_URL</codeApiUrl> variable is the backend base URL (default localhost:8000)."
   },
   "chat": {
+    "panelAriaLabel": "Assistant chat",
+    "messageFieldAriaLabel": "Chat message text",
     "db": "DB",
     "llm": "LLM",
     "api": "API",
+    "apiEndpointTitle": "Base URL",
     "statusOk": "ok",
     "statusNo": "no",
     "statusWait": "…",

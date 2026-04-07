@@ -4,19 +4,34 @@
     "description": "Веб-банк и чат с локальной LLM"
   },
   "common": {
+    "skipToMain": "К основному содержимому",
     "themeToggle": "Переключить тему",
     "themeToLight": "Светлая тема",
     "themeToDark": "Тёмная тема"
   },
+  "error": {
+    "title": "Не удалось загрузить страницу",
+    "hint": "Остановите лишние процессы на порту 3000, удалите папку .next в apps/web-client и перезапустите dev-сервер. Если ошибка повторяется — откройте консоль (F12) и проверьте текст ниже.",
+    "retry": "Повторить"
+  },
   "home": {
     "badge": "web-client · порт 3000",
-    "title": "Spektors · чат",
+    "shellProduct": "Spektors · клиент",
+    "title": "Чат",
+    "tagline": "Сообщения и ответы сохраняются на сервере.",
+    "helpTitle": "О подключении",
+    "helpExpand": "Справка по API и переменным",
+    "helpCollapse": "Скрыть справку",
+    "apiResolvedLabel": "Текущий базовый URL в этом браузере:",
     "intro": "Публичный API с заголовком <codeAppId>X-App-Id: web_client</codeAppId>. Переменная <codeApiUrl>NEXT_PUBLIC_API_URL</codeApiUrl> — базовый URL бэкенда (по умолчанию localhost:8000)."
   },
   "chat": {
+    "panelAriaLabel": "Чат с ассистентом",
+    "messageFieldAriaLabel": "Текст сообщения для чата",
     "db": "БД",
     "llm": "LLM",
     "api": "API",
+    "apiEndpointTitle": "Базовый URL",
     "statusOk": "ok",
     "statusNo": "нет",
     "statusWait": "…",

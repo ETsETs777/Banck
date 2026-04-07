@@ -4,19 +4,34 @@
     "description": "Облегчённый клиент и чат"
   },
   "common": {
+    "skipToMain": "К основному содержимому",
     "themeToggle": "Переключить тему",
     "themeToLight": "Светлая тема",
     "themeToDark": "Тёмная тема"
   },
+  "error": {
+    "title": "Не удалось загрузить страницу",
+    "hint": "Остановите процесс на порту 3001, удалите apps/web-lite/.next и перезапустите dev-сервер. Подробности — в консоли (F12) и ниже.",
+    "retry": "Повторить"
+  },
   "home": {
     "badge": "web-lite · порт 3001",
-    "title": "Spektors · Lite",
+    "shellProduct": "Spektors · Lite",
+    "title": "Чат",
+    "tagline": "Облегчённый интерфейс к тому же API.",
+    "helpTitle": "О подключении",
+    "helpExpand": "Справка по API и переменным",
+    "helpCollapse": "Скрыть справку",
+    "apiResolvedLabel": "Текущий базовый URL в этом браузере:",
     "intro": "Тот же API, другой заголовок <codeAppId>X-App-Id: web_lite</codeAppId>. Переменная <codeApiUrl>NEXT_PUBLIC_API_URL</codeApiUrl> — базовый URL бэкенда."
   },
   "chat": {
+    "panelAriaLabel": "Чат с ассистентом",
+    "messageFieldAriaLabel": "Текст сообщения для чата",
     "db": "БД",
     "llm": "LLM",
     "api": "API",
+    "apiEndpointTitle": "Базовый URL",
     "statusOk": "ok",
     "statusNo": "нет",
     "statusWait": "…",

@@ -1,4 +1,5 @@
-import { AppTopBar } from "@/components/AppTopBar";
+import { AppChrome } from "@/components/AppChrome";
+import { SkipToMainContent } from "@/components/SkipToMainContent";
 import { routing, type AppLocale } from "@/i18n/routing";
 import { notFound } from "next/navigation";
 import { NextIntlClientProvider } from "next-intl";
@@ -27,8 +28,11 @@ export default async function LocaleLayout({
   return (
     <NextIntlClientProvider messages={messages} locale={locale}>
       <LangSync />
-      <AppTopBar />
-      {children}
+      <SkipToMainContent />
+      <div className="flex min-h-screen min-h-0 flex-col">
+        <AppChrome />
+        <div className="flex min-h-0 flex-1 flex-col">{children}</div>
+      </div>
     </NextIntlClientProvider>
   );
 }

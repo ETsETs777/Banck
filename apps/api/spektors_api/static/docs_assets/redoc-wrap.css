@@ -1,0 +1,8 @@
+/* Обёртка страницы ReDoc (Spektors) */
+html,
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  background: #0b0e12;
+}

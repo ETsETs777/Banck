@@ -44,6 +44,7 @@ import {
 import { LauncherPanel } from "./launcher/components/shell/LauncherPanel";
 import { inferLevel, makeLogEntry } from "./launcher/utils/log-utils";
 import { WindowChrome } from "./launcher/components/shell/WindowChrome";
+import { YandexMusicMini } from "./launcher/components/shell/YandexMusicMini";
 import {
   LauncherCardsProvider,
   type LauncherCardsValue,
@@ -1045,6 +1046,7 @@ export default function App() {
               >
                 <IconRefresh /> Обновить статусы
               </button>
+              <YandexMusicMini />
             </div>
             <div className="mt-auto flex flex-col gap-2 border-t border-[var(--glass-border)]/80 pt-3">
               <p className="px-2 text-[9px] font-bold uppercase tracking-[0.18em] text-[color:var(--fg-muted)]">

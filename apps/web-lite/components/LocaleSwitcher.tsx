@@ -11,7 +11,11 @@ export function LocaleSwitcher() {
 
   return (
     <div
-      className="flex items-center gap-2 rounded-lg border border-white/15 bg-black/40 px-3 py-1.5 text-xs text-muted shadow-glow backdrop-blur-md"
+      className="flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs text-muted shadow-glow backdrop-blur-md"
+      style={{
+        borderColor: "var(--glass-border)",
+        background: "color-mix(in srgb, var(--glass-highlight) 45%, var(--bg))",
+      }}
       role="navigation"
       aria-label={t("label")}
     >

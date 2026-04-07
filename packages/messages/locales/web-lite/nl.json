@@ -4,19 +4,34 @@
     "description": "Lichte client en chat"
   },
   "common": {
+    "skipToMain": "Naar hoofdinhoud",
     "themeToggle": "Thema wisselen",
     "themeToLight": "Licht thema",
     "themeToDark": "Donker thema"
   },
+  "error": {
+    "title": "Pagina kon niet worden geladen",
+    "hint": "Maak poort 3001 vrij, verwijder apps/web-lite/.next en start de dev-server opnieuw. Zie de console (F12) en de details hieronder.",
+    "retry": "Opnieuw proberen"
+  },
   "home": {
     "badge": "web-lite · poort 3001",
-    "title": "Spektors · Lite",
+    "shellProduct": "Spektors · Lite",
+    "title": "Chat",
+    "tagline": "Lichte interface voor dezelfde API.",
+    "helpTitle": "Over de verbinding",
+    "helpExpand": "Hulp bij API en omgeving",
+    "helpCollapse": "Hulp verbergen",
+    "apiResolvedLabel": "Huidige API-basis-URL in deze browser:",
     "intro": "Dezelfde API, andere header <codeAppId>X-App-Id: web_lite</codeAppId>. Variabele <codeApiUrl>NEXT_PUBLIC_API_URL</codeApiUrl> is de basis-URL van de backend."
   },
   "chat": {
+    "panelAriaLabel": "Chat met assistent",
+    "messageFieldAriaLabel": "Tekst van het chatbericht",
     "db": "DB",
     "llm": "LLM",
     "api": "API",
+    "apiEndpointTitle": "Basis-URL",
     "statusOk": "ok",
     "statusNo": "nee",
     "statusWait": "…",

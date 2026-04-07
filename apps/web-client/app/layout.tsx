@@ -8,6 +8,9 @@ import "./globals.css";
 const dmSans = DM_Sans({
   variable: "--font-dm-sans",
   subsets: ["latin", "latin-ext"],
+  display: "swap",
+  fallback: ["system-ui", "Segoe UI", "sans-serif"],
+  adjustFontFallback: true,
 });
 
 /**

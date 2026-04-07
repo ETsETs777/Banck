@@ -1,0 +1,285 @@
+/**
+ * Spektors — оформление Swagger UI (swagger-ui-dist@5).
+ * Подключается после стандартного swagger-ui.css.
+ */
+:root {
+  --spek-bg: #0b0e12;
+  --spek-surface: #12171f;
+  --spek-elevated: #181e28;
+  --spek-border: rgba(255, 255, 255, 0.09);
+  --spek-border-strong: rgba(255, 255, 255, 0.14);
+  --spek-text: #e8eaef;
+  --spek-muted: #9aa3b2;
+  --spek-accent: #2dd4bf;
+  --spek-accent-soft: rgba(45, 212, 191, 0.14);
+  --spek-code-bg: rgba(0, 0, 0, 0.35);
+  --spek-radius: 12px;
+  --spek-font: "DM Sans", "Segoe UI", system-ui, sans-serif;
+  --spek-mono: "JetBrains Mono", "Cascadia Code", ui-monospace, monospace;
+}
+
+html {
+  box-sizing: border-box;
+}
+*,
+*::before,
+*::after {
+  box-sizing: inherit;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--spek-bg);
+  color: var(--spek-text);
+  font-family: var(--spek-font);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Верхняя полоса Swagger — компактная, в тон */
+.swagger-ui .topbar {
+  background: var(--spek-surface);
+  border-bottom: 1px solid var(--spek-border);
+  padding: 0.65rem 1.25rem;
+}
+.swagger-ui .topbar .download-url-wrapper {
+  display: none;
+}
+.swagger-ui .topbar img {
+  display: none;
+}
+.swagger-ui .topbar::after {
+  content: "Spektors API";
+  font-weight: 700;
+  font-size: 1.05rem;
+  letter-spacing: -0.02em;
+  color: var(--spek-text);
+}
+
+/* Блок описания OpenAPI (markdown) */
+.swagger-ui .information-container.wrapper {
+  max-width: 52rem;
+  margin: 0 auto;
+  padding: 1.5rem 1.25rem 0;
+}
+.swagger-ui .info {
+  margin: 0;
+}
+.swagger-ui .info .title {
+  font-size: 1.75rem !important;
+  font-weight: 700 !important;
+  color: var(--spek-text) !important;
+  letter-spacing: -0.03em;
+}
+.swagger-ui .info .title small {
+  background: var(--spek-accent-soft) !important;
+  border: 1px solid rgba(45, 212, 191, 0.35) !important;
+  color: var(--spek-accent) !important;
+  border-radius: 999px !important;
+  padding: 0.2rem 0.65rem !important;
+  font-size: 0.75rem !important;
+  vertical-align: middle;
+}
+.swagger-ui .info .base-url {
+  color: var(--spek-muted) !important;
+  font-size: 0.85rem !important;
+}
+.swagger-ui .info .markdown,
+.swagger-ui .info .description .renderedMarkdown,
+.swagger-ui .info .description {
+  font-size: 0.9375rem !important;
+  line-height: 1.65 !important;
+  color: var(--spek-muted) !important;
+}
+.swagger-ui .info .markdown h1,
+.swagger-ui .info .markdown h2,
+.swagger-ui .info .markdown h3 {
+  color: var(--spek-text) !important;
+  font-weight: 600 !important;
+  margin-top: 1.35em !important;
+  margin-bottom: 0.5em !important;
+  border: none !important;
+}
+.swagger-ui .info .markdown h2 {
+  font-size: 1.1rem !important;
+  padding-bottom: 0.35rem !important;
+  border-bottom: 1px solid var(--spek-border) !important;
+}
+.swagger-ui .info .markdown p,
+.swagger-ui .info .markdown li {
+  color: var(--spek-muted) !important;
+}
+.swagger-ui .info .markdown a {
+  color: var(--spek-accent) !important;
+  text-decoration: none !important;
+}
+.swagger-ui .info .markdown a:hover {
+  text-decoration: underline !important;
+}
+.swagger-ui .info .markdown code {
+  font-family: var(--spek-mono) !important;
+  font-size: 0.82em !important;
+  background: var(--spek-code-bg) !important;
+  border: 1px solid var(--spek-border) !important;
+  border-radius: 6px !important;
+  padding: 0.12rem 0.4rem !important;
+  color: #a5f3fc !important;
+}
+.swagger-ui .info .markdown pre {
+  background: var(--spek-elevated) !important;
+  border: 1px solid var(--spek-border) !important;
+  border-radius: var(--spek-radius) !important;
+  padding: 1rem !important;
+}
+.swagger-ui .info .markdown pre code {
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  color: var(--spek-text) !important;
+}
+.swagger-ui .info .markdown ul {
+  padding-left: 1.25rem !important;
+}
+
+/* Схемы, фильтр, authorize */
+.swagger-ui .scheme-container {
+  background: var(--spek-surface) !important;
+  border: 1px solid var(--spek-border) !important;
+  border-radius: var(--spek-radius) !important;
+  box-shadow: none !important;
+  padding: 0.85rem 1rem !important;
+  margin: 1rem auto 0 !important;
+  max-width: 52rem;
+}
+.swagger-ui .filter-container {
+  max-width: 52rem;
+  margin: 1rem auto 0 !important;
+  padding: 0 1.25rem;
+}
+.swagger-ui .filter .operation-filter-input {
+  background: var(--spek-elevated) !important;
+  border: 1px solid var(--spek-border) !important;
+  border-radius: 10px !important;
+  color: var(--spek-text) !important;
+  padding: 0.5rem 0.75rem !important;
+}
+
+.swagger-ui .wrapper {
+  max-width: 52rem;
+  margin: 0 auto;
+  padding: 0 1.25rem 3rem;
+}
+
+/* Теги и операции */
+.swagger-ui .opblock-tag {
+  border-bottom: 1px solid var(--spek-border) !important;
+  color: var(--spek-text) !important;
+  font-size: 1rem !important;
+  font-weight: 600 !important;
+}
+.swagger-ui .opblock-tag small {
+  color: var(--spek-muted) !important;
+}
+.swagger-ui .opblock {
+  border-radius: var(--spek-radius) !important;
+  border: 1px solid var(--spek-border) !important;
+  margin-bottom: 0.65rem !important;
+  background: var(--spek-surface) !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25) !important;
+}
+.swagger-ui .opblock .opblock-summary {
+  border: none !important;
+}
+.swagger-ui .opblock .opblock-summary-method {
+  border-radius: 8px !important;
+  font-weight: 700 !important;
+  min-width: 4.25rem !important;
+}
+.swagger-ui .opblock-body {
+  background: var(--spek-elevated) !important;
+}
+
+/* Табы, таблицы параметров */
+.swagger-ui .tab li button.tablinks {
+  color: var(--spek-muted) !important;
+}
+.swagger-ui .tab li button.tablinks.active {
+  color: var(--spek-accent) !important;
+}
+.swagger-ui table thead tr th,
+.swagger-ui table thead tr td {
+  color: var(--spek-muted) !important;
+  border-bottom: 1px solid var(--spek-border) !important;
+}
+.swagger-ui table tbody tr td {
+  border-bottom: 1px solid var(--spek-border) !important;
+  color: var(--spek-text) !important;
+}
+.swagger-ui .parameter__name,
+.swagger-ui .response-col_status {
+  color: var(--spek-text) !important;
+}
+.swagger-ui .model-box,
+.swagger-ui .model {
+  background: var(--spek-code-bg) !important;
+  border-radius: 8px !important;
+}
+
+/* Кнопки */
+.swagger-ui .btn {
+  border-radius: 10px !important;
+  font-weight: 600 !important;
+  box-shadow: none !important;
+}
+.swagger-ui .btn.authorize {
+  background: var(--spek-accent-soft) !important;
+  border-color: rgba(45, 212, 191, 0.45) !important;
+  color: var(--spek-accent) !important;
+}
+.swagger-ui .btn.execute {
+  background: linear-gradient(135deg, #14b8a6, #0d9488) !important;
+  border-color: transparent !important;
+  color: #042f2e !important;
+}
+.swagger-ui .btn.cancel {
+  background: transparent !important;
+  border-color: var(--spek-border-strong) !important;
+  color: var(--spek-muted) !important;
+}
+
+/* Try it out / ответы */
+.swagger-ui .responses-inner,
+.swagger-ui .curl,
+.swagger-ui textarea,
+.swagger-ui input[type="text"],
+.swagger-ui input[type="password"],
+.swagger-ui select {
+  background: var(--spek-elevated) !important;
+  border: 1px solid var(--spek-border) !important;
+  color: var(--spek-text) !important;
+  border-radius: 8px !important;
+}
+.swagger-ui .highlight-code pre {
+  background: #0a0d11 !important;
+  border-radius: 8px !important;
+}
+
+/* Models внизу */
+.swagger-ui section.models {
+  border: 1px solid var(--spek-border) !important;
+  border-radius: var(--spek-radius) !important;
+  background: var(--spek-surface) !important;
+}
+.swagger-ui section.models h4 {
+  color: var(--spek-text) !important;
+}
+
+/* Scrollbar (WebKit) */
+.swagger-ui ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.swagger-ui ::-webkit-scrollbar-thumb {
+  background: var(--spek-border-strong);
+  border-radius: 4px;
+}

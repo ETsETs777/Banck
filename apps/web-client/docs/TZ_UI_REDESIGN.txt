@@ -1,0 +1,106 @@
+================================================================================
+ТЗ: переработка UI web-client (Spektors · чат)
+Файл: apps/web-client/docs/TZ_UI_REDESIGN.txt
+Версия: 1.1 (обновлено: статус, смежные системы, бэклог)
+================================================================================
+
+0. ОБЛАСТЬ И СВЯЗАННЫЕ ПРОДУКТЫ
+--------------------------------------------------------------------------------
+- Основной фокус: apps/web-client и общий пакет packages/chat-ui; зеркало —
+  apps/web-lite (те же паттерны shell + чат).
+- Документация HTTP API: FastAPI /docs и /redoc оформлены отдельно
+  (spektors_api/docs_ui.py, static/docs_assets) — визуально согласованы с идеей
+  «тёмный glass / акцент», но не дублируют токены Next (другой стек).
+- Десктоп-лаунчер и web-admin в это ТЗ не входят, кроме общих токенов
+  @spektors/ui-tokens при повторном использовании.
+
+1. ЦЕЛИ И ПРОБЛЕМЫ (исходное состояние — до редизайна)
+--------------------------------------------------------------------------------
+- Перегруз первого экрана техническим текстом (X-App-Id, NEXT_PUBLIC_API_URL, порт).
+- Слабая визуальная иерархия: карточка-справка конкурировала по размеру с чатом.
+- Поле ввода плохо стыковалось с тёмной темой.
+- Плотная сетка: БД, LLM, API и длинный URL в одной строке.
+- Шапка в fixed углу не вписывалась в каркас страницы.
+
+2. ИНФОРМАЦИОННАЯ АРХИТЕКТУРА
+--------------------------------------------------------------------------------
+- Первый экран: доминирует ЧАТ (короткий заголовок + tagline).
+- Техническая справка: вторичный блок «О подключении», по умолчанию СВЁРНУТ;
+  внутри — rich-текст intro + строка с фактическим базовым URL клиента
+  (NEXT_PUBLIC_API_URL или дефолт).
+- Статусы БД / LLM / API: компактные pill; полный URL — tooltip на API и в справке.
+- Опционально (бэклог): слот infoSlot / доп. контент над лентой в ChatPanel для
+  редких сценариев без раздувания первого экрана.
+
+3. ВИЗУАЛЬНАЯ СИСТЕМА
+--------------------------------------------------------------------------------
+- Shell: липкий header; колонка контента max-width 42rem (672px); отступы px-4 md:px-6.
+- Токены @spektors/ui-tokens/theme.css: --bg, --fg, --fg-muted, --glass, --glass-border,
+  --glass-highlight, --accent, --ring, --danger, --chat-user, --chat-assistant.
+  Пузыри чата должны опираться на --chat-user / --chat-assistant (светлая/тёмная тема).
+- Лента: min-height на мобильных и sm:min-h[min(560px,70dvh)] на широких экранах;
+  разумный max-height от dvh, цепочка flex min-h-0 до main.
+- Composer: textarea на --glass-highlight, рамка --glass-border, focus-visible ring accent.
+- Кнопки: primary (accent), secondary (glass-border); focus-visible:ring на интерактивах.
+
+4. A11y И ПОВЕДЕНИЕ
+--------------------------------------------------------------------------------
+- Skip link «к основному содержимому» → #main-content (видим при фокусе с клавиатуры).
+- prefers-reduced-motion: ослабить анимации (например раскрытие справки).
+- Ошибки чата: контейнер aria-live="polite"; текст role="status"; цвет --danger.
+- SSE: label htmlFor + id на чекбоксе.
+- Панель чата, поле ввода, статусы: осмысленные aria-label.
+- Раскрытая справка: role="region" aria-labelledby.
+- Новые строки i18n: ru, en, nl (web-client и web-lite для общих ключей shell/home).
+
+5. КОМПОНЕНТЫ И ФАЙЛЫ (карта репозитория)
+--------------------------------------------------------------------------------
+- apps/web-client/components/AppChrome.tsx        — header shell
+- apps/web-client/components/WebClientHome.tsx      — справка + ChatPanel
+- apps/web-client/components/LocaleSwitcher.tsx
+- apps/web-client/components/SkipToMainContent.tsx — skip link (клиент)
+- apps/web-client/app/[locale]/layout.tsx
+- apps/web-client/app/[locale]/page.tsx            — <main id="main-content">
+- apps/web-client/app/[locale]/error.tsx
+- apps/web-lite/*                                  — зеркальные компоненты
+- packages/chat-ui/src/ChatPanel.tsx               — variant app|classic, пропы статуса
+- packages/messages/locales/web-client|web-lite    — home.*, chat.*, common.*, error.*
+
+6. СТАТУС РЕАЛИЗАЦИИ (к v1.1)
+--------------------------------------------------------------------------------
+[done] Shell 42rem, AppChrome, сворачиваемая справка, apiResolved в справке
+[done] ChatPanel app: статус-бар, пузыри, композер на токенах, flex-цепочка
+[done] Пузыри: фоны --chat-user / --chat-assistant; ошибки — цвет --danger
+[done] Автопрокрутка ленты к последнему сообщению (уважает prefers-reduced-motion)
+[done] Skip link common.skipToMain → #main-content (web-client, web-lite)
+[done] Справка: motion-safe transition на маркере раскрытия
+[done] i18n ключи help*, apiResolvedLabel, panelAriaLabel, messageFieldAriaLabel, error.*
+[done] Страница ошибки error.tsx; dev:webpack при проблемах Turbopack
+[done] Swagger/ReDoc API — отдельная тёмная тема (spektors_api/docs_ui.py)
+[todo] infoSlot в ChatPanel при появлении реального сценария
+[todo] Периодическая ручная проверка светлой темы и data-contrast="high" (ThemeToggle)
+[todo] E2E или smoke-скрипт на отправку чата + SSE (по мере появления CI)
+
+7. КРИТЕРИИ ПРИЁМКИ
+--------------------------------------------------------------------------------
+- Без раскрытия справки технический блок не доминирует над чатом по высоте.
+- Светлая и тёмная тема: читаемость пузырей и поля ввода (контраст).
+- npm run build -w web-client, web-lite, @spektors/chat-ui; npm run check:i18n.
+- Сценарии: отправка, SSE, новый диалог, копирование thread id, обновление треда.
+
+8. ЗАВИСИМОСТИ
+--------------------------------------------------------------------------------
+- Изменения chat-ui затрагивают web-client и web-lite; API ChatPanel стабилен
+  (appId обязателен; остальные пропы опциональны).
+
+9. ОТЛАДКА 500 (localhost)
+--------------------------------------------------------------------------------
+- app/[locale]/error.tsx: без useTranslations — тексты по локали из pathname, чтобы
+  граница ошибки не ломалась без контекста intl.
+- Skip link: класс .skip-to-main в globals.css (без Tailwind focus:not-sr-only).
+- Редирект /favicon.ico → /globe.svg в next.config.ts.
+- После сбоев: удалить .next в приложении, освободить порт, перезапустить dev.
+
+================================================================================
+Конец ТЗ
+================================================================================
